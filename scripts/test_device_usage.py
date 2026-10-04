@@ -28,6 +28,49 @@ class UsageTests(unittest.TestCase):
         with self.assertRaises(ValueError):u.normalize(e,{})
 
 
+class PricingTests(unittest.TestCase):
+    def test_cache_and_reasoning_are_not_charged_twice(self):
+        # 10 uncached + 70 read + 20 write + 20 output (including reasoning).
+        self.assertAlmostEqual(u.estimate_cost('claude', 'claude-opus-5-5', 100, 20, 70, 20, 'complete'), .000554)
+        self.assertAlmostEqual(u.estimate_cost('codex', 'gpt-6-luna', 100, 20, 70, 20, 'complete'), .0000142)
+
+    def test_long_context_threshold_is_per_attempt(self):
+        for model in ['gpt-6.1-sol', 'gpt-6-luna']:
+            rates = u.RATES[('codex', model)]
+            for tokens in [272000, 272001]:
+                factor = 2 if tokens > 272000 else 1
+                output_factor = 1.5 if tokens > 272000 else 1
+                expected = ((tokens - 120) * rates[0] * factor + 100 * rates[1] * factor + 20 * rates[2] * factor + 30 * rates[3] * output_factor) / 1000000
+                self.assertAlmostEqual(u.estimate_cost('codex', model, tokens, 30, 100, 20, 'complete'), expected)
+        self.assertAlmostEqual(u.estimate_cost('claude', 'claude-opus-5-5', 900000, 0, 0, 0, 'complete'), 3.6)
+
+    def test_unknown_and_incomplete_are_unpriced(self):
+        for provider, model, quality in [('codex','unknown','complete'), ('claude','gpt-6.1-sol','complete'), ('codex','gpt-6.1-sol','unclassified')]:
+            self.assertIsNone(u.estimate_cost(provider, model, 100, 20, 70, 20, quality))
+
+    def test_report_costs_reconcile_and_preserve_unknown_coverage(self):
+        import datetime as dt
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'test.db')
+            events = []
+            for ident, model in [('one','claude-opus-5-5'), ('retry','claude-opus-5-5'), ('unknown','new-model')]:
+                event = UsageTests().event()
+                event.update(execution_id=ident, model=model, trace_id='same', failed=ident=='retry')
+                events.append(event)
+            registry = {hashlib.sha256(b'secret-client').hexdigest(): 'Dan', 'idle': 'idle'}
+            u.record_batch(c, events, registry)
+            result = u.report(c, 1, registry, now=dt.datetime(2026,10,4,13,tzinfo=dt.timezone.utc))
+            self.assertAlmostEqual(result['totals']['cost_usd'], .001108)
+            self.assertEqual(result['totals']['unpriced_executions'], 1)
+            self.assertEqual(result['totals']['requests'], 1)
+            for key in ['clients','models','daily','timeline','client_models']:
+                self.assertAlmostEqual(sum(r['cost_usd'] for r in result[key]), .001108)
+                self.assertEqual(sum(r['unpriced_executions'] for r in result[key]), 1)
+            idle = next(r for r in result['clients'] if r['client']=='idle')
+            self.assertEqual((idle['cost_usd'],idle['unpriced_executions']), (0,0))
+            c.close()
+
+
 class AccessTests(unittest.TestCase):
     def test_client_key_cannot_read_statistics(self):
         import threading,json,urllib.request,urllib.error

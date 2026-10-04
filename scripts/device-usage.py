@@ -23,9 +23,36 @@ COLUMNS = 'id,ts,client,provider,model,account,trace,input,output,cache_read,cac
 METRICS = ['input', 'output', 'cache_read', 'cache_write', 'reasoning', 'total']
 
 
+# USD per million tokens: uncached input, cache read, 5-minute write, output.
+# Verified 2026-10-04 against official model pages; see device-usage.md.
+PRICING_DATE = '2026-10-04'
+RATES = {
+    ('claude', 'claude-opus-5-5'): (4, .2, 5, 20),
+    ('claude', 'claude-sonnet-5-5'): (2, .2, 2.5, 10),
+    ('claude', 'claude-haiku-4-5-20251001'): (1, .1, 1.25, 5),
+    ('codex', 'gpt-6.1-sol'): (2, .1, 2.5, 10),
+    ('codex', 'gpt-6-luna'): (.1, .01, .125, .5),
+}
+
+
+def estimate_cost(provider, model, inp, out, read, write, quality):
+    rates = RATES.get((provider, model))
+    if rates is None or quality != 'complete':
+        return None
+    # Input already contains both cache categories; output includes reasoning.
+    uncached = inp - read - write
+    if uncached < 0:
+        return None
+    long_context = provider == 'codex' and inp > 272000
+    input_cost = (uncached * rates[0] + read * rates[1] + write * rates[2])
+    return (input_cost * (2 if long_context else 1)
+            + out * rates[3] * (1.5 if long_context else 1)) / 1000000
+
+
 def connect(path=DB):
     c = sqlite3.connect(path, timeout=20)
     c.row_factory = sqlite3.Row
+    c.create_function('estimate_cost', 7, estimate_cost, deterministic=True)
     c.execute('PRAGMA journal_mode=WAL')
     c.execute('''CREATE TABLE IF NOT EXISTS events (
         id TEXT PRIMARY KEY, ts TEXT NOT NULL, client TEXT NOT NULL,
@@ -128,7 +155,9 @@ def report(c, days, registry, interval='auto', now=None):
     since = (now - dt.timedelta(days=days)).isoformat(timespec='microseconds')
     until = now.isoformat(timespec='microseconds')
     sums = ','.join(f'COALESCE(SUM({m}),0) AS {m}' for m in METRICS)
-    aggregate = f'COUNT(*) AS executions, COUNT(DISTINCT client || char(58) || trace) AS requests, COALESCE(SUM(failed),0) AS errors,{sums},COALESCE(AVG(latency_ms),0) AS latency_ms,COALESCE(SUM(quality != "complete"),0) AS incomplete'
+    cost = 'estimate_cost(provider,model,input,output,cache_read,cache_write,quality)'
+    costs = f'COALESCE(SUM({cost}),0) AS cost_usd,COALESCE(SUM({cost} IS NULL),0) AS unpriced_executions'
+    aggregate = f'COUNT(*) AS executions, COUNT(DISTINCT client || char(58) || trace) AS requests, COALESCE(SUM(failed),0) AS errors,{sums},COALESCE(AVG(latency_ms),0) AS latency_ms,COALESCE(SUM(quality != "complete"),0) AS incomplete,{costs}'
     def query(sql):
         return [dict(r) for r in c.execute(sql, (since, until))]
     window = 'ts>=? AND ts<=?'
@@ -137,7 +166,7 @@ def report(c, days, registry, interval='auto', now=None):
     totals = query(f'SELECT {aggregate} FROM events WHERE {window}')[0]
     clients = query(f'SELECT client,{aggregate} FROM events WHERE {window} GROUP BY client ORDER BY total DESC')
     found = {r['client'] for r in clients}
-    empty = dict.fromkeys(['executions','requests','errors','latency_ms','incomplete'] + METRICS, 0)
+    empty = dict.fromkeys(['executions','requests','errors','latency_ms','incomplete','cost_usd','unpriced_executions'] + METRICS, 0)
     clients += [dict(empty, client=name) for name in sorted(set(registry.values()) - found)]
     models = query(f'SELECT provider,model,{aggregate} FROM events WHERE {window} GROUP BY provider,model ORDER BY total DESC')
     client_models = query(f'SELECT client,provider,model,{aggregate} FROM events WHERE {window} GROUP BY client,provider,model ORDER BY total DESC')
@@ -150,13 +179,14 @@ def report(c, days, registry, interval='auto', now=None):
     ) SELECT CAST(strftime('%s',ts) AS INTEGER)/{seconds}*{seconds} AS bucket,
         client,COUNT(*) AS executions,SUM(attempt=1) AS requests,
         SUM(failed) AS errors,{sums},AVG(latency_ms) AS latency_ms,
-        SUM(quality != 'complete') AS incomplete
+        SUM(quality != 'complete') AS incomplete,{costs}
         FROM ranked GROUP BY bucket,client ORDER BY bucket,client''')
     collector = dict(c.execute('SELECT key,value FROM collector'))
     c.commit()
     return dict(days=days, totals=totals, clients=clients, models=models, daily=daily,
                 client_models=client_models, collector=collector, timeline=timeline,
-                interval=interval, bucket_seconds=seconds, range_start=since, range_end=until)
+                interval=interval, bucket_seconds=seconds, range_start=since, range_end=until,
+                pricing=dict(as_of=PRICING_DATE, currency='USD', basis='standard-5m-cache'))
 
 
 class Handler(BaseHTTPRequestHandler):

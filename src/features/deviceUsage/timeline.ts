@@ -9,7 +9,7 @@ export const intervalAllowed = (days: number, interval: Interval) =>
   interval === 'auto' || (days * 86400) / { '5m': 300, '1h': 3600, '1d': 86400 }[interval] <= 744;
 
 export function sumMetrics(rows: UsageMetrics[]): UsageMetrics {
-  const result: UsageMetrics = {
+  const result = {
     executions: 0,
     requests: 0,
     errors: 0,
@@ -23,12 +23,17 @@ export function sumMetrics(rows: UsageMetrics[]): UsageMetrics {
     incomplete: 0,
   };
   for (const row of rows) {
-    for (const key of Object.keys(result) as (keyof UsageMetrics)[]) {
+    for (const key of Object.keys(result) as (keyof typeof result)[]) {
       result[key] += key === 'latency_ms' ? row[key] * row.executions : row[key];
     }
   }
+  const priced: Pick<UsageMetrics, 'cost_usd' | 'unpriced_executions'> = {};
+  if (rows.every((row) => row.cost_usd !== undefined && row.unpriced_executions !== undefined)) {
+    priced.cost_usd = rows.reduce((sum, row) => sum + row.cost_usd!, 0);
+    priced.unpriced_executions = rows.reduce((sum, row) => sum + row.unpriced_executions!, 0);
+  }
   result.latency_ms = result.executions ? result.latency_ms / result.executions : 0;
-  return result;
+  return { ...result, ...priced };
 }
 
 // Presentation-only aliases: keep the collector's per-key history and registry intact.

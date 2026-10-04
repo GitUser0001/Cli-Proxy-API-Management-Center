@@ -27,3 +27,18 @@ Verification for ledger.4: 1499 Bun tests, lint and TypeScript/Vite build; seven
 ## People grouping (ledger.5)
 
 The UI combines `dan-macbook` and `devbox-dshcherbak` as **Dan**, and displays `devbox-dlukianenko` as **Denis**, `devbox-hhodovaniuk` as **Hlib**, and `devbox-dplokhuta` as **Dima**. `dan-test-app` and unknown/new clients remain separate. This presentation mapping lives in `src/features/deviceUsage/timeline.ts`; the API response and SQLite per-key history are unchanged. Grouping combines additive counters by person, bucket and model; latency is weighted by attempts. Filters, summary cards, model tables and CSV use the same grouped values. CSV labels its identity column `person_or_app`. No collector/backend restart or data migration is required.
+
+
+## API estimate (ledger.6)
+
+The existing report now adds `cost_usd` and `unpriced_executions` to every metrics group, plus `pricing` metadata. SQLite schema and stored events are unchanged. Each attempt is priced before aggregation, including retries with recorded usage; reasoning is already in output, and uncached input is input minus cache read/write. Unknown provider/model pairs and incomplete accounting are excluded and counted. No fuzzy price matching. Changing the rate table reprices all recorded history; this is a current-rate comparison, not historical billing or subscription spend.
+
+Standard USD/1M token rates verified 2026-10-04 (input / read / write / output):
+
+- [GPT-6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol): 2 / 0.10 / 2.50 / 10.
+- [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna): 0.10 / 0.01 / 0.125 / 0.50.
+- [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing): Opus 5.5: 4 / 0.20 / 5 / 20; Sonnet 5.5: 2 / 0.20 / 2.50 / 10; Haiku 4.5 (20251001): 1 / 0.10 / 1.25 / 5.
+
+OpenAI attempts over 272,000 canonical input tokens apply 2x input/cache and 1.5x output rates to the full attempt. Claude 5.5 has no long-context premium. Claude writes assume 5-minute TTL; the DB does not store cache duration (1-hour writes cost more) or service speed tier. Fast mode, regional premiums, server tool fees, subscription fees, and discounts are excluded. These limitations appear in the UI explanation alongside source links and verification date. Unknown/incomplete amounts display a dash or partial asterisk with the excluded count; tiny positive estimates display <$0.01 instead of rounding to zero. People and period filters apply to the cost card and both tables. Older collectors simply omit cost UI.
+
+T3 reference: installed macOS Nightly 0.0.46-nightly.20261004.2648 usage screen labels the result “API estimate”, splits input/cache-read/cache-write/output, and explicitly excludes unpriced records. Its public application bundle was inspected, not private conversation/auth files. This feature uses the same simple presentation concept with the proxy's canonical counters and independently verified rates. No T3 import or additional queue consumer.

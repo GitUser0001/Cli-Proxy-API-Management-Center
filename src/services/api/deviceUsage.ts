@@ -12,9 +12,12 @@ export interface UsageMetrics {
   total: number;
   latency_ms: number;
   incomplete: number;
+  cost_usd?: number;
+  unpriced_executions?: number;
 }
 export interface DeviceUsage {
   days: number;
+  pricing?: { as_of: string; currency: string; basis: string };
   totals: UsageMetrics;
   clients: (UsageMetrics & { client: string })[];
   models: (UsageMetrics & { provider: string; model: string })[];

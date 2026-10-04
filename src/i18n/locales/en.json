@@ -2302,6 +2302,12 @@
     "peak": "Peak interval",
     "bucket_until": "until {{time}} UTC",
     "unpin": "Return to peak",
-    "bucket_note": "UTC buckets. First and last intervals may be partial. Requests count each trace once per user/device in this period; retries add attempts, tokens and failures at their actual time. Zero means no recorded activity, not verified uptime."
+    "bucket_note": "UTC buckets. First and last intervals may be partial. Requests count each trace once per user/device in this period; retries add attempts, tokens and failures at their actual time. Zero means no recorded activity, not verified uptime.",
+    "cost": "API estimate",
+    "cost_equivalent": "Token value · USD",
+    "cost_explained": "How this estimate works",
+    "cost_assumptions": "Equivalent token cost, not your subscription bill. Standard API rates verified {{date}}, applied to all recorded history. Assumes 5-minute Claude cache writes; cache duration and speed tier are not recorded. Fast mode, regional premiums and tool fees are excluded.",
+    "cost_formula": "(Input − cache reads − cache writes) × input rate + cache reads × read rate + cache writes × write rate + output × output rate. Reasoning is already in output. OpenAI prompts over 272K input tokens use long-context rates per attempt.",
+    "cost_unpriced": "Excluded attempts: {{count}} (unknown model price or incomplete token data)."
   }
 }

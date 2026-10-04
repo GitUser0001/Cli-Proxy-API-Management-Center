@@ -1,3 +1,4 @@
+import { formatCost } from '../src/features/deviceUsage/cost';
 import { describe, expect, test } from 'bun:test';
 import {
   buildTimeline,
@@ -124,5 +125,48 @@ describe('Device usage grouped by person', () => {
     ]);
     expect(grouped.timeline).toBeUndefined();
     expect(grouped.client_models).toBeUndefined();
+  });
+});
+
+describe('API cost estimates', () => {
+  test('preserves price coverage through people and model filters', () => {
+    const mac = {
+      ...metrics(2, 20),
+      client: 'dan-macbook',
+      cost_usd: 1.25,
+      unpriced_executions: 1,
+    };
+    const vm = {
+      ...metrics(1, 10),
+      client: 'devbox-dshcherbak',
+      cost_usd: 0.75,
+      unpriced_executions: 0,
+    };
+    const other = {
+      ...metrics(1, 10),
+      client: 'devbox-dlukianenko',
+      cost_usd: 4,
+      unpriced_executions: 0,
+    };
+    const grouped = groupUsageByPerson({
+      ...data,
+      clients: [mac, vm, other],
+      client_models: [mac, vm, other].map((r) => ({ ...r, provider: 'claude', model: 'm' })),
+    });
+    const dan = grouped.clients.find((r) => r.client === 'Dan')!;
+    expect(dan.cost_usd).toBe(2);
+    expect(dan.unpriced_executions).toBe(1);
+    expect(modelRows(grouped, ['Dan'])[0].cost_usd).toBe(2);
+    expect(sumMetrics([]).cost_usd).toBe(0);
+    expect(sumMetrics([mac, metrics(1)]).cost_usd).toBeUndefined();
+  });
+  test('distinguishes unknown, partial, tiny and zero cost', () => {
+    const row = { ...metrics(2), cost_usd: 1.5, unpriced_executions: 0 };
+    expect(formatCost(row, 'en-US')).toBe('≈$1.50');
+    expect(formatCost({ ...row, unpriced_executions: 1 }, 'en-US')).toBe('≈$1.50*');
+    expect(formatCost({ ...row, unpriced_executions: 2 }, 'en-US')).toBe('—');
+    expect(formatCost(metrics(1), 'en-US')).toBe('—');
+    expect(formatCost({ ...row, cost_usd: 0.001 }, 'en-US')).toBe('<$0.01');
+    expect(formatCost({ ...row, cost_usd: 0 }, 'en-US')).toBe('≈$0.00');
   });
 });

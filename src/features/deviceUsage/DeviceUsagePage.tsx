@@ -7,6 +7,7 @@ import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { apiClient } from '@/services/api/client';
 import { deviceUsageApi, type DeviceUsage, type UsageMetrics } from '@/services/api/deviceUsage';
 import styles from './DeviceUsagePage.module.scss';
+import { formatCost } from './cost';
 import { UsageTimeline } from './UsageTimeline';
 import {
   groupUsageByPerson,
@@ -92,6 +93,12 @@ export function DeviceUsagePage() {
     new Intl.NumberFormat(i18n.language, { notation: 'compact', maximumFractionDigits: 1 }).format(
       n
     );
+  const hasPricing = Boolean(data?.pricing);
+  const cost = (row: UsageMetrics) => formatCost(row, i18n.language);
+  const costTitle = (row: UsageMetrics) =>
+    row.unpriced_executions
+      ? t('device_usage.cost_unpriced', { count: row.unpriced_executions })
+      : t('device_usage.cost_equivalent');
   const columns = [
     'requests',
     'input',
@@ -107,6 +114,7 @@ export function DeviceUsagePage() {
         <thead>
           <tr>
             <th scope="col">{label}</th>
+            {hasPricing && <th scope="col">{t('device_usage.cost')}</th>}
             {columns.map((key) => (
               <th scope="col" key={key}>
                 {t(`device_usage.${key}`)}
@@ -117,12 +125,13 @@ export function DeviceUsagePage() {
         <tbody>
           {!rows.length && (
             <tr>
-              <td colSpan={columns.length + 1}>{t('device_usage.empty')}</td>
+              <td colSpan={columns.length + 1 + Number(hasPricing)}>{t('device_usage.empty')}</td>
             </tr>
           )}
           {rows.map((row) => (
             <tr key={row.label}>
               <th scope="row">{row.label}</th>
+              {hasPricing && <td title={costTitle(row)}>{cost(row)}</td>}
               {columns.map((key) => (
                 <td key={key}>{number(row[key])}</td>
               ))}
@@ -194,7 +203,14 @@ export function DeviceUsagePage() {
       {data && (
         <>
           <div className={styles.scope}>{t('device_usage.scope', { count: selected.length })}</div>
-          <div className={styles.stats}>
+          <div className={`${styles.stats} ${hasPricing ? styles.withCost : ''}`}>
+            {hasPricing && (
+              <div className={styles.costStat}>
+                <span>{t('device_usage.cost')}</span>
+                <strong title={costTitle(totals)}>{cost(totals)}</strong>
+                <small>{t('device_usage.cost_equivalent')}</small>
+              </div>
+            )}
             {(['requests', 'total', 'cache_read', 'errors'] as const).map((key) => (
               <div key={key}>
                 <span>{t(`device_usage.${key}`)}</span>
@@ -202,6 +218,44 @@ export function DeviceUsagePage() {
               </div>
             ))}
           </div>
+          {hasPricing && (
+            <details className={styles.costDetails}>
+              <summary>{t('device_usage.cost_explained')}</summary>
+              <p>{t('device_usage.cost_assumptions', { date: data.pricing!.as_of })}</p>
+              <p>{t('device_usage.cost_formula')}</p>
+              <p className={totals.unpriced_executions ? styles.notice : undefined}>
+                {t('device_usage.cost_unpriced', { count: totals.unpriced_executions ?? 0 })}
+              </p>
+              <a
+                href="https://developers.openai.com/api/docs/models/gpt-6.1-sol"
+                target="_blank"
+                rel="noreferrer"
+              >
+                GPT-6.1 Sol
+              </a>
+              {' · '}
+              <a
+                href="https://developers.openai.com/api/docs/models/gpt-6-luna"
+                target="_blank"
+                rel="noreferrer"
+              >
+                GPT-6 Luna
+              </a>
+              {' · '}
+              <a
+                href="https://platform.claude.com/docs/en/about-claude/pricing"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Claude
+              </a>
+            </details>
+          )}
+          {hasPricing && Boolean(totals.unpriced_executions) && (
+            <p className={styles.notice}>
+              {t('device_usage.cost_unpriced', { count: totals.unpriced_executions })}
+            </p>
+          )}
           <div className={styles.status} role="status">
             <span className={stale ? styles.stale : styles.live}>
               {t(stale ? 'device_usage.stale' : 'device_usage.collecting')}
