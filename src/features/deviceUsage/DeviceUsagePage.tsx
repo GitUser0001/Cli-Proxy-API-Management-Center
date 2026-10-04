@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -7,13 +7,18 @@ import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { apiClient } from '@/services/api/client';
 import { deviceUsageApi, type DeviceUsage, type UsageMetrics } from '@/services/api/deviceUsage';
 import styles from './DeviceUsagePage.module.scss';
+import { UsageTimeline } from './UsageTimeline';
+import { intervals, intervalAllowed, modelRows, sumMetrics, type Interval } from './timeline';
 
 export function DeviceUsagePage() {
   const { t, i18n } = useTranslation();
   const apiBase = useAuthStore((s) => s.apiBase);
   const managementKey = useAuthStore((s) => s.managementKey);
   const status = useAuthStore((s) => s.connectionStatus);
-  const [days, setDays] = useState(7);
+  const [days, setDays] = useState(1);
+  const [interval, setInterval] = useState<Interval>('auto');
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [selection, setSelection] = useState<string[] | null>(null);
   const [data, setData] = useState<DeviceUsage | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -29,7 +34,7 @@ export function DeviceUsagePage() {
     setLoading(true);
     setError(false);
     try {
-      const result = await deviceUsageApi.get(days, abort.signal);
+      const result = await deviceUsageApi.get(days, abort.signal, interval);
       if (
         !abort.signal.aborted &&
         id === generation.current &&
@@ -51,7 +56,7 @@ export function DeviceUsagePage() {
       )
         setLoading(false);
     }
-  }, [days, status]);
+  }, [days, status, interval]);
   useEffect(() => {
     setData(null);
     void reload();
@@ -60,6 +65,21 @@ export function DeviceUsagePage() {
     };
   }, [apiBase, managementKey, reload]);
   useHeaderRefresh(reload);
+  useEffect(() => {
+    setSelection(null);
+  }, [apiBase, managementKey]);
+  useEffect(() => {
+    if (!autoRefresh || status !== 'connected') return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void reload();
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [autoRefresh, reload, status]);
+  const clients = useMemo(() => data?.clients.map((c) => c.client).sort() ?? [], [data]);
+  const selected = selection === null ? clients : clients.filter((c) => selection.includes(c));
+  const filteredClients = data?.clients.filter((c) => selected.includes(c.client)) ?? [];
+  const totals =
+    data && selected.length === clients.length ? data.totals : sumMetrics(filteredClients);
   const number = (n: number) => new Intl.NumberFormat(i18n.language).format(n);
   const compact = (n: number) =>
     new Intl.NumberFormat(i18n.language, { notation: 'compact', maximumFractionDigits: 1 }).format(
@@ -88,6 +108,11 @@ export function DeviceUsagePage() {
           </tr>
         </thead>
         <tbody>
+          {!rows.length && (
+            <tr>
+              <td colSpan={columns.length + 1}>{t('device_usage.empty')}</td>
+            </tr>
+          )}
           {rows.map((row) => (
             <tr key={row.label}>
               <th scope="row">{row.label}</th>
@@ -101,8 +126,9 @@ export function DeviceUsagePage() {
     </div>
   );
   const lastPoll = data?.collector.last_poll;
-  const stale = !lastPoll || Date.now() - Date.parse(lastPoll) > 60000;
-  const maxDay = Math.max(1, ...(data?.daily.map((d) => d.total) ?? []));
+  const stale =
+    !lastPoll ||
+    (data?.range_end ? Date.parse(data.range_end) : Date.now()) - Date.parse(lastPoll) > 60000;
   return (
     <section className={styles.page}>
       <header className={styles.header}>
@@ -114,13 +140,38 @@ export function DeviceUsagePage() {
         <div className={styles.actions}>
           <label>
             <span className={styles.srOnly}>{t('device_usage.period')}</span>
-            <select value={days} onChange={(e) => setDays(Number(e.target.value))}>
+            <select
+              value={days}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setDays(next);
+                if (!intervalAllowed(next, interval)) setInterval('auto');
+              }}
+            >
               {[1, 7, 30, 90].map((d) => (
                 <option key={d} value={d}>
-                  {t('device_usage.days', { count: d })}
+                  {t(d === 1 ? 'device_usage.last_day' : 'device_usage.days', { count: d })}
                 </option>
               ))}
             </select>
+          </label>
+          <label>
+            <span className={styles.srOnly}>{t('device_usage.interval')}</span>
+            <select value={interval} onChange={(e) => setInterval(e.target.value as Interval)}>
+              {intervals.map((value) => (
+                <option key={value} value={value} disabled={!intervalAllowed(days, value)}>
+                  {t(`device_usage.interval_${value}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.autoRefresh}>
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+            />
+            {t('device_usage.auto_refresh')}
           </label>
           <Button variant="secondary" onClick={() => void reload()} loading={loading}>
             {t('device_usage.refresh')}
@@ -135,11 +186,12 @@ export function DeviceUsagePage() {
       {!data && !error && <p role="status">{t('device_usage.loading')}</p>}
       {data && (
         <>
+          <div className={styles.scope}>{t('device_usage.scope', { count: selected.length })}</div>
           <div className={styles.stats}>
-            {(['total', 'requests', 'cache_read', 'errors'] as const).map((key) => (
+            {(['requests', 'total', 'cache_read', 'errors'] as const).map((key) => (
               <div key={key}>
                 <span>{t(`device_usage.${key}`)}</span>
-                <strong title={number(data.totals[key])}>{compact(data.totals[key])}</strong>
+                <strong title={number(totals[key])}>{compact(totals[key])}</strong>
               </div>
             ))}
           </div>
@@ -158,40 +210,30 @@ export function DeviceUsagePage() {
               {lastPoll ? new Date(lastPoll).toLocaleString(i18n.language) : '—'}
             </span>
           </div>
+          <UsageTimeline
+            key={`${days}-${interval}`}
+            data={data}
+            clients={clients}
+            selected={selected}
+            onSelect={(value) => setSelection(value.length === clients.length ? null : value)}
+          />
           <Card title={t('device_usage.clients')}>
             {table(
-              data.clients.map((r) => ({ ...r, label: r.client })),
+              filteredClients.map((r) => ({ ...r, label: r.client })),
               t('device_usage.client')
             )}
           </Card>
-          <Card title={t('device_usage.daily')}>
-            <div className={styles.chart}>
-              {data.daily.length ? (
-                data.daily.map((d) => (
-                  <div className={styles.barRow} key={d.day}>
-                    <time>{d.day}</time>
-                    <div>
-                      <span style={{ width: `${Math.max(1, (d.total / maxDay) * 100)}%` }} />
-                    </div>
-                    <strong>{number(d.total)}</strong>
-                  </div>
-                ))
-              ) : (
-                <p>{t('device_usage.empty')}</p>
-              )}
-            </div>
-          </Card>
           <Card title={t('device_usage.models')}>
             {table(
-              data.models.map((r) => ({ ...r, label: `${r.provider} / ${r.model}` })),
+              modelRows(data, selected).map((r) => ({ ...r, label: `${r.provider} / ${r.model}` })),
               t('device_usage.model')
             )}
           </Card>
           <p className={styles.note}>
             {t('device_usage.accounting')}{' '}
-            {t('device_usage.attempts', { count: data.totals.executions })}{' '}
+            {t('device_usage.attempts', { count: totals.executions })}{' '}
             {t('device_usage.quality', {
-              count: data.totals.incomplete,
+              count: totals.incomplete,
               rejected: data.collector.rejected ?? '0',
             })}
           </p>

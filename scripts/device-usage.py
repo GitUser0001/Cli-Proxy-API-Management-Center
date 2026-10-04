@@ -110,21 +110,53 @@ def collect():
         time.sleep(5)
 
 
-def report(c, days, registry):
-    since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat(timespec='microseconds')
+INTERVALS = {'5m': 300, '1h': 3600, '1d': 86400}
+
+
+def resolve_interval(days, interval='auto'):
+    if interval == 'auto':
+        interval = '5m' if days == 1 else '1h' if days == 7 else '1d'
+    if interval not in INTERVALS or days * 86400 // INTERVALS[interval] > 744:
+        raise ValueError('interval too small or unsupported')
+    return interval
+
+
+def report(c, days, registry, interval='auto', now=None):
+    interval = resolve_interval(days, interval)
+    seconds = INTERVALS[interval]
+    now = now or dt.datetime.now(dt.timezone.utc)
+    since = (now - dt.timedelta(days=days)).isoformat(timespec='microseconds')
+    until = now.isoformat(timespec='microseconds')
     sums = ','.join(f'COALESCE(SUM({m}),0) AS {m}' for m in METRICS)
-    aggregate = f'COUNT(*) AS executions, COUNT(DISTINCT trace) AS requests, COALESCE(SUM(failed),0) AS errors,{sums},COALESCE(AVG(latency_ms),0) AS latency_ms,COALESCE(SUM(quality != "complete"),0) AS incomplete'
+    aggregate = f'COUNT(*) AS executions, COUNT(DISTINCT client || char(58) || trace) AS requests, COALESCE(SUM(failed),0) AS errors,{sums},COALESCE(AVG(latency_ms),0) AS latency_ms,COALESCE(SUM(quality != "complete"),0) AS incomplete'
     def query(sql):
-        return [dict(r) for r in c.execute(sql, (since,))]
-    totals = query(f'SELECT {aggregate} FROM events WHERE ts>=?')[0]
-    clients = query(f'SELECT client,{aggregate} FROM events WHERE ts>=? GROUP BY client ORDER BY total DESC')
+        return [dict(r) for r in c.execute(sql, (since, until))]
+    window = 'ts>=? AND ts<=?'
+    # All parts of one report share a SQLite snapshot while the collector writes.
+    c.execute('BEGIN')
+    totals = query(f'SELECT {aggregate} FROM events WHERE {window}')[0]
+    clients = query(f'SELECT client,{aggregate} FROM events WHERE {window} GROUP BY client ORDER BY total DESC')
     found = {r['client'] for r in clients}
     empty = dict.fromkeys(['executions','requests','errors','latency_ms','incomplete'] + METRICS, 0)
     clients += [dict(empty, client=name) for name in sorted(set(registry.values()) - found)]
-    models = query(f'SELECT provider,model,{aggregate} FROM events WHERE ts>=? GROUP BY provider,model ORDER BY total DESC')
-    daily = query(f'SELECT substr(ts,1,10) AS day,{aggregate} FROM events WHERE ts>=? GROUP BY day ORDER BY day')
+    models = query(f'SELECT provider,model,{aggregate} FROM events WHERE {window} GROUP BY provider,model ORDER BY total DESC')
+    client_models = query(f'SELECT client,provider,model,{aggregate} FROM events WHERE {window} GROUP BY client,provider,model ORDER BY total DESC')
+    daily = query(f'SELECT substr(ts,1,10) AS day,{aggregate} FROM events WHERE {window} GROUP BY day ORDER BY day')
+    # Count a trace once, in its first observed bucket in the requested window.
+    # Attempts/tokens retain their actual timestamps, even when a retry crosses a bucket.
+    timeline = query(f'''WITH ranked AS (
+        SELECT *, ROW_NUMBER() OVER (PARTITION BY client,trace ORDER BY ts,id) AS attempt
+        FROM events WHERE {window}
+    ) SELECT CAST(strftime('%s',ts) AS INTEGER)/{seconds}*{seconds} AS bucket,
+        client,COUNT(*) AS executions,SUM(attempt=1) AS requests,
+        SUM(failed) AS errors,{sums},AVG(latency_ms) AS latency_ms,
+        SUM(quality != 'complete') AS incomplete
+        FROM ranked GROUP BY bucket,client ORDER BY bucket,client''')
     collector = dict(c.execute('SELECT key,value FROM collector'))
-    return dict(days=days, totals=totals, clients=clients, models=models, daily=daily, collector=collector)
+    c.commit()
+    return dict(days=days, totals=totals, clients=clients, models=models, daily=daily,
+                client_models=client_models, collector=collector, timeline=timeline,
+                interval=interval, bucket_seconds=seconds, range_start=since, range_end=until)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -142,17 +174,19 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(404, {'error': 'not found'})
             return
         try:
-            days = int(parse_qs(path.query).get('days', ['7'])[0])
+            params = parse_qs(path.query)
+            days = int(params.get('days', ['7'])[0])
             if days not in (1, 7, 30, 90):
                 raise ValueError()
+            interval = resolve_interval(days, params.get('interval', ['auto'])[0])
         except ValueError:
-            self.send_json(400, {'error': 'days must be 1, 7, 30 or 90'})
+            self.send_json(400, {'error': 'unsupported days or interval (maximum 744 buckets)'})
             return
         try:
             registry = json.loads(REGISTRY.read_text())
             c = connect()
             try:
-                body = report(c, days, registry)
+                body = report(c, days, registry, interval)
             finally:
                 c.close()
             self.send_json(200, body)

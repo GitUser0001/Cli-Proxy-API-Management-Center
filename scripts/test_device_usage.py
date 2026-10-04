@@ -47,4 +47,51 @@ class AccessTests(unittest.TestCase):
             finally:
                 server.shutdown();server.server_close();u.KEY_FILE=old
 
+class TimelineTests(unittest.TestCase):
+    def test_requests_deduplicate_retries_but_tokens_keep_actual_time(self):
+        import datetime as dt
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'test.db')
+            events = []
+            for ident, stamp, trace, key in [
+                ('a', '2026-10-04T11:59:00Z', 'trace-a', 'one'),
+                ('retry', '2026-10-04T12:01:00Z', 'trace-a', 'one'),
+                ('b', '2026-10-04T12:02:00Z', 'trace-b', 'two'),
+                ('future', '2026-10-05T12:02:00Z', 'trace-c', 'two'),
+                ('old', '2026-10-02T12:02:00Z', 'trace-d', 'two'),
+            ]:
+                event = UsageTests().event()
+                event.update(execution_id=ident, timestamp=stamp, trace_id=trace, api_key=key, failed=ident == 'retry')
+                events.append(event)
+            registry = {hashlib.sha256(k.encode()).hexdigest(): k for k in ['one', 'two', 'idle']}
+            u.record_batch(c, events, registry)
+            now = dt.datetime(2026, 10, 4, 13, tzinfo=dt.timezone.utc)
+            for interval in ['5m', '1h', '1d']:
+                result = u.report(c, 1, registry, interval, now)
+                self.assertEqual(result['totals']['requests'], 2)
+                self.assertEqual(result['totals']['executions'], 3)
+                self.assertEqual(result['totals']['total'], 360)
+                for metric in ['requests', 'executions', 'total', 'errors']:
+                    self.assertEqual(sum(r[metric] for r in result['timeline']), result['totals'][metric])
+                self.assertEqual(next(r for r in result['clients'] if r['client'] == 'idle')['requests'], 0)
+                self.assertEqual(len(result['client_models']), 2)
+                if interval == '1h':
+                    retry = next(r for r in result['timeline'] if r['client'] == 'one' and r['bucket'] == 1791115200)
+                    self.assertEqual((retry['requests'], retry['executions'], retry['total'], retry['errors']), (0, 1, 120, 1))
+            c.close()
+
+    def test_intervals_are_bounded(self):
+        self.assertEqual([u.resolve_interval(d) for d in [1, 7, 30, 90]], ['5m', '1h', '1d', '1d'])
+        for days, interval in [(7, '5m'), (90, '1h'), (1, 'invalid')]:
+            with self.assertRaises(ValueError): u.resolve_interval(days, interval)
+
+    def test_empty_report(self):
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'test.db')
+            result = u.report(c, 1, {'hash': 'idle'})
+            self.assertEqual(result['timeline'], [])
+            self.assertEqual(result['clients'][0]['requests'], 0)
+            self.assertEqual(result['totals']['requests'], 0)
+            c.close()
+
 if __name__=='__main__':unittest.main()
