@@ -1,3 +1,4 @@
+import { personModelRows } from '../src/features/deviceUsage/breakdown';
 import { formatCost } from '../src/features/deviceUsage/cost';
 import { describe, expect, test } from 'bun:test';
 import {
@@ -168,5 +169,40 @@ describe('API cost estimates', () => {
     expect(formatCost(metrics(1), 'en-US')).toBe('—');
     expect(formatCost({ ...row, cost_usd: 0.001 }, 'en-US')).toBe('<$0.01');
     expect(formatCost({ ...row, cost_usd: 0 }, 'en-US')).toBe('≈$0.00');
+  });
+});
+
+describe('People, providers and models', () => {
+  test('keeps exact person request totals and bases provider shares on attempts', () => {
+    const person = { ...metrics(2, 300), executions: 3, client: 'Dan' };
+    const rows = [
+      { ...metrics(2, 200), client: 'Dan', provider: 'claude', model: 'shared-name' },
+      { ...metrics(1, 100), client: 'Dan', provider: 'codex', model: 'shared-name' },
+      { ...metrics(4, 400), client: 'Denis', provider: 'claude', model: 'other' },
+    ];
+    const result = personModelRows({ ...data, clients: [person], client_models: rows }, ['Dan'])!;
+    expect(result).toHaveLength(1);
+    expect(result[0].requests).toBe(2);
+    expect(result[0].models).toHaveLength(2);
+    expect(result[0].providers.map((p) => p.share)).toEqual([2 / 3, 1 / 3]);
+    expect(result[0].providers.map((p) => p.executions)).toEqual([2, 1]);
+    expect(result[0].models.map((r) => r.provider)).toEqual(['claude', 'codex']);
+    expect(rows[2].client).toBe('Denis');
+  });
+  test('combines both Dan devices before breakdown and handles idle/legacy/empty selection', () => {
+    const mac = { ...metrics(2, 200), client: 'dan-macbook', provider: 'claude', model: 'm' };
+    const vm = { ...metrics(1, 100), client: 'devbox-dshcherbak', provider: 'claude', model: 'm' };
+    const idle = { ...metrics(), client: 'idle' };
+    const grouped = groupUsageByPerson({
+      ...data,
+      clients: [mac, vm, idle],
+      client_models: [mac, vm],
+    });
+    const result = personModelRows(grouped, ['Dan', 'idle'])!;
+    expect(result[0].models[0].requests).toBe(3);
+    expect(result[0].providers[0].share).toBe(1);
+    expect(result[1].models).toEqual([]);
+    expect(personModelRows(grouped, [])).toEqual([]);
+    expect(personModelRows(data, ['Dan'])).toBeUndefined();
   });
 });

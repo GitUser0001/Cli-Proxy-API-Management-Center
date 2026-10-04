@@ -8,6 +8,7 @@ import { apiClient } from '@/services/api/client';
 import { deviceUsageApi, type DeviceUsage, type UsageMetrics } from '@/services/api/deviceUsage';
 import styles from './DeviceUsagePage.module.scss';
 import { formatCost } from './cost';
+import { PersonModelBreakdown } from './PersonModelBreakdown';
 import { UsageTimeline } from './UsageTimeline';
 import {
   groupUsageByPerson,
@@ -278,6 +279,7 @@ export function DeviceUsagePage() {
             selected={selected}
             onSelect={(value) => setSelection(value.length === clients.length ? null : value)}
           />
+          <PersonModelBreakdown data={data} selected={selected} />
           <Card title={t('device_usage.clients')}>
             {table(
               filteredClients.map((r) => ({ ...r, label: r.client })),

@@ -2308,6 +2308,13 @@
     "cost_explained": "How this estimate works",
     "cost_assumptions": "Equivalent token cost, not your subscription bill. Standard API rates verified {{date}}, applied to all recorded history. Assumes 5-minute Claude cache writes; cache duration and speed tier are not recorded. Fast mode, regional premiums and tool fees are excluded.",
     "cost_formula": "(Input − cache reads − cache writes) × input rate + cache reads × read rate + cache writes × write rate + output × output rate. Reasoning is already in output. OpenAI prompts over 272K input tokens use long-context rates per attempt.",
-    "cost_unpriced": "Excluded attempts: {{count}} (unknown model price or incomplete token data)."
+    "cost_unpriced": "Excluded attempts: {{count}} (unknown model price or incomplete token data).",
+    "breakdown_title": "Who uses what",
+    "breakdown_intro": "Providers and models for each selected person · same period as the chart.",
+    "provider_mix": "Provider share by attempts",
+    "breakdown_requests": "Requests: {{value}}",
+    "breakdown_attempts": "Attempts: {{value}}",
+    "breakdown_note": "Provider shares count upstream attempts, including retries. A request that switches models can appear in multiple model rows; model request counts may exceed the person’s total.",
+    "breakdown_unavailable": "Per-person model data is unavailable from this collector."
   }
 }
