@@ -107,7 +107,8 @@
     "plugin_store": "Plugin Store",
     "config_management": "Config Panel",
     "logs": "Logs Viewer",
-    "system_info": "Management Center Info"
+    "system_info": "Management Center Info",
+    "device_usage": "Device usage"
   },
   "nav_groups": {
     "operate": "Operate",
@@ -127,7 +128,8 @@
     "plugin_store": "Discover & install plugins",
     "logs": "Request tracing",
     "config_management": "Gateway configuration",
-    "system_info": "Runtime & diagnostics"
+    "system_info": "Runtime & diagnostics",
+    "device_usage": "Token history across your laptops and T3 users. Only traffic through this proxy is counted."
   },
   "dashboard": {
     "hero_verdict_good": "All systems steady",
@@ -2240,5 +2242,35 @@
     "unavailable": "Resets are currently unavailable.",
     "rate_limited": "Request rate limited.",
     "auth_error": "Authorization was refused."
+  },
+  "device_usage": {
+    "private": "Administrator only",
+    "title": "Device usage",
+    "subtitle": "Token history across your laptops and T3 users. Only traffic through this proxy is counted.",
+    "period": "Period",
+    "days": "Last {{count}} days",
+    "refresh": "Refresh",
+    "unavailable": "Usage service is unavailable. Check the collector and try again.",
+    "loading": "Loading usage…",
+    "total": "Total tokens",
+    "requests": "Requests",
+    "cache_read": "Cache read",
+    "cache_write": "Cache write",
+    "errors": "Failed attempts",
+    "input": "Input",
+    "output": "Output",
+    "collecting": "Collector current",
+    "stale": "Collector delayed",
+    "since": "Collecting since",
+    "updated": "Last collection",
+    "clients": "Clients",
+    "client": "Client / device",
+    "daily": "Daily tokens · UTC",
+    "empty": "No requests in this period.",
+    "models": "Models",
+    "model": "Provider / model",
+    "accounting": "Input includes cache reads and writes; output includes reasoning. These are token counts, not subscription quota percentages or charges. History starts when collection was enabled. Refresh to update this view.",
+    "attempts": "{{count}} upstream attempts (including retries).",
+    "quality": "Incomplete accounting: {{count}}. Rejected records since startup: {{rejected}}."
   }
 }

@@ -647,6 +647,12 @@ export function MainLayout() {
           icon: sidebarIcons.quota,
         },
         {
+          path: '/device-usage',
+          labelKey: 'nav.device_usage',
+          metaKey: 'nav_meta.device_usage',
+          icon: sidebarIcons.quota,
+        },
+        {
           path: '/logs',
           labelKey: 'nav.logs',
           metaKey: 'nav_meta.logs',
