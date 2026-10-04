@@ -31,6 +31,43 @@ export function sumMetrics(rows: UsageMetrics[]): UsageMetrics {
   return result;
 }
 
+// Presentation-only aliases: keep the collector's per-key history and registry intact.
+const people: Readonly<Record<string, string>> = {
+  'dan-macbook': 'Dan',
+  'devbox-dshcherbak': 'Dan',
+  'devbox-dlukianenko': 'Denis',
+  'devbox-hhodovaniuk': 'Hlib',
+  'devbox-dplokhuta': 'Dima',
+};
+
+export function groupUsageByPerson(data: DeviceUsage): DeviceUsage {
+  const name = (client: string) =>
+    Object.prototype.hasOwnProperty.call(people, client) ? people[client] : client;
+  function group<T extends UsageMetrics & { client: string }>(
+    rows: T[],
+    key: (row: T) => string
+  ): T[] {
+    const groups = new Map<string, T[]>();
+    for (const row of rows) {
+      const renamed = { ...row, client: name(row.client) };
+      const id = key(renamed);
+      const values = groups.get(id);
+      if (values) values.push(renamed);
+      else groups.set(id, [renamed]);
+    }
+    return [...groups.values()].map((rows) => ({ ...rows[0], ...sumMetrics(rows) }));
+  }
+  return {
+    ...data,
+    clients: group(data.clients, (row) => row.client).sort((a, b) => b.total - a.total),
+    timeline:
+      data.timeline && group(data.timeline, (row) => JSON.stringify([row.bucket, row.client])),
+    client_models:
+      data.client_models &&
+      group(data.client_models, (row) => JSON.stringify([row.client, row.provider, row.model])),
+  };
+}
+
 export function modelRows(data: DeviceUsage, selected: string[]) {
   if (!data.client_models) return data.models;
   const groups = new Map<string, (UsageMetrics & { provider: string; model: string })[]>();
@@ -72,7 +109,14 @@ export function timelineCsv(data: DeviceUsage, clients: string[]) {
   const tokens = buildTimeline(data, clients, 'total');
   const errors = buildTimeline(data, clients, 'errors');
   return [
-    ['bucket_start_utc', 'bucket_end_utc', 'client', 'requests', 'total_tokens', 'failed_attempts'],
+    [
+      'bucket_start_utc',
+      'bucket_end_utc',
+      'person_or_app',
+      'requests',
+      'total_tokens',
+      'failed_attempts',
+    ],
     ...requests.flatMap((point, i) =>
       clients.map((client, j) => [
         new Date(Math.max(point.bucket * 1000, Date.parse(data.range_start!))).toISOString(),

@@ -8,7 +8,14 @@ import { apiClient } from '@/services/api/client';
 import { deviceUsageApi, type DeviceUsage, type UsageMetrics } from '@/services/api/deviceUsage';
 import styles from './DeviceUsagePage.module.scss';
 import { UsageTimeline } from './UsageTimeline';
-import { intervals, intervalAllowed, modelRows, sumMetrics, type Interval } from './timeline';
+import {
+  groupUsageByPerson,
+  intervals,
+  intervalAllowed,
+  modelRows,
+  sumMetrics,
+  type Interval,
+} from './timeline';
 
 export function DeviceUsagePage() {
   const { t, i18n } = useTranslation();
@@ -40,7 +47,7 @@ export function DeviceUsagePage() {
         id === generation.current &&
         revision === apiClient.getConnectionRevision()
       )
-        setData(result);
+        setData(groupUsageByPerson(result));
     } catch {
       if (
         !abort.signal.aborted &&

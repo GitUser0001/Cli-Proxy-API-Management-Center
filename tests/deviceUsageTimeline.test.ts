@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   buildTimeline,
   csvCell,
+  groupUsageByPerson,
   intervalAllowed,
   modelRows,
   sumMetrics,
@@ -72,5 +73,56 @@ describe('Device usage time series', () => {
     expect(csv).not.toContain('bob');
     expect(csvCell('=cmd()')).toBe('"\'=cmd()"');
     expect(csvCell('a"b')).toBe('"a""b"');
+  });
+});
+
+describe('Device usage grouped by person', () => {
+  test('combines Dan across devices in totals, overlapping buckets, model filters and CSV', () => {
+    const bucket = data.timeline![0].bucket;
+    const mac = { ...metrics(2, 60), latency_ms: 100, client: 'dan-macbook' };
+    const vm = { ...metrics(3, 90), latency_ms: 200, client: 'devbox-dshcherbak' };
+    const app = { ...metrics(1, 20), client: 'dan-test-app' };
+    const raw: DeviceUsage = {
+      ...data,
+      totals: metrics(6, 170),
+      clients: [mac, vm, app],
+      timeline: [mac, vm, app].map((r) => ({ ...r, bucket })),
+      client_models: [mac, vm, app].map((r) => ({ ...r, provider: 'p', model: 'm' })),
+    };
+    const grouped = groupUsageByPerson(raw);
+    expect(grouped.clients.map((r) => r.client)).toEqual(['Dan', 'dan-test-app']);
+    expect(grouped.clients[0].requests).toBe(5);
+    expect(grouped.clients[0].total).toBe(150);
+    expect(grouped.clients[0].latency_ms).toBe(160);
+    expect(grouped.totals).toEqual(raw.totals);
+    expect(buildTimeline(grouped, ['Dan'], 'requests').map((r) => r.total)).toEqual([5, 0, 0]);
+    expect(modelRows(grouped, ['Dan'])[0].total).toBe(150);
+    expect(timelineCsv(grouped, ['Dan'])).toContain('"Dan","5","150","0"');
+    expect(timelineCsv(grouped, ['Dan'])).not.toContain('dan-test-app');
+    expect(raw.clients[0].client).toBe('dan-macbook');
+    expect(raw.timeline).toHaveLength(3);
+  });
+  test('maps all four people and preserves unknown clients and legacy responses', () => {
+    const clients = [
+      'devbox-dlukianenko',
+      'devbox-hhodovaniuk',
+      'devbox-dplokhuta',
+      'new-device',
+      'constructor',
+    ];
+    const grouped = groupUsageByPerson({
+      ...data,
+      timeline: undefined,
+      clients: clients.map((client) => ({ ...metrics(), client })),
+    });
+    expect(grouped.clients.map((r) => r.client)).toEqual([
+      'Denis',
+      'Hlib',
+      'Dima',
+      'new-device',
+      'constructor',
+    ]);
+    expect(grouped.timeline).toBeUndefined();
+    expect(grouped.client_models).toBeUndefined();
   });
 });
