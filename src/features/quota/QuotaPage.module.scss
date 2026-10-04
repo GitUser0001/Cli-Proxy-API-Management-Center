@@ -58,9 +58,8 @@
   color: var(--text-secondary);
 
   &:focus-within {
-    border-color: var(--border-hover);
     outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
+    outline-offset: -2px;
   }
 }
 
