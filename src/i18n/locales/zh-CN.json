@@ -1581,7 +1581,22 @@
     "weekday_wed": "三",
     "weekday_thu": "四",
     "weekday_fri": "五",
-    "weekday_sat": "六"
+    "weekday_sat": "六",
+    "show_emails": "显示邮箱",
+    "hide_emails": "隐藏邮箱",
+    "layout_ledger": "列表",
+    "layout_cards": "卡片",
+    "layout_label": "配额布局",
+    "ledger_of": "共 {{value}}%",
+    "ledger_known": "{{known}} / {{total}} 个已启用账号有每周数据",
+    "ledger_summary_hint": "当前筛选范围内每周剩余百分比之和，不代表共享的令牌容量。总计不含已停用或数据未知的账号。",
+    "ledger_disabled": "已停用",
+    "ledger_idle": "尚未加载",
+    "ledger_loading": "加载中…",
+    "ledger_error": "无法加载配额。打开详情以重试。",
+    "ledger_success": "未返回配额窗口",
+    "ledger_details": "详情与操作",
+    "ledger_less": "收起详情"
   },
   "plugin_management": {
     "title": "插件管理",

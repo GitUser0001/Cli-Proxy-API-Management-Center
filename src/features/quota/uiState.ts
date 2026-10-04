@@ -7,6 +7,7 @@ import {
 
 /** 额度页 UI 偏好：会话级持久化（sessionStorage），跨会话不携带。 */
 export type QuotaUiState = {
+  layout?: 'ledger' | 'cards';
   tab?: QuotaTabId;
   sortMode?: QuotaSortMode;
 };
@@ -30,6 +31,7 @@ export const readQuotaUiState = (): QuotaUiState | null => {
     const parsed = JSON.parse(raw) as QuotaUiState;
     if (!parsed || typeof parsed !== 'object') return null;
     return {
+      ...(parsed.layout === 'ledger' || parsed.layout === 'cards' ? { layout: parsed.layout } : {}),
       tab: isQuotaTabId(parsed.tab) ? parsed.tab : undefined,
       sortMode: isQuotaSortMode(parsed.sortMode) ? parsed.sortMode : undefined,
     };

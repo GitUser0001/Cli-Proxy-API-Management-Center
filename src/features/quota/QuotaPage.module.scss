@@ -218,3 +218,19 @@
     gap: 16px;
   }
 }
+
+.layoutSelect {
+  width: 130px;
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .tabsRow {
+    flex-wrap: wrap;
+    > :first-child {
+      flex-basis: 100%;
+    }
+  }
+  .layoutSelect {
+    margin-left: auto;
+  }
+}

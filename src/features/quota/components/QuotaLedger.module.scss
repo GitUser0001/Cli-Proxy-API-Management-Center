@@ -1,0 +1,234 @@
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+.summaryCell {
+  padding: 22px 24px;
+  min-width: 0;
+  border-inline-end: 1px solid var(--border-color);
+  &:last-child {
+    border: 0;
+  }
+}
+.summaryHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  > span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+  }
+  img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+  small {
+    color: var(--text-tertiary);
+  }
+}
+.caption {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  margin: 5px 0 12px;
+  small {
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--text-secondary);
+  }
+}
+.segments {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  > * {
+    flex: 1;
+  }
+}
+.track {
+  height: 4px;
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+  > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+  }
+}
+.high {
+  background: var(--viz-success);
+}
+.medium {
+  background: var(--quota-medium-color);
+}
+.low {
+  background: var(--viz-failure);
+}
+.summaryNote {
+  margin: 8px 2px 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+.ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding-top: 12px;
+}
+.group {
+  min-width: 0;
+  h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 14px;
+    margin: 0 0 10px;
+    span {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      font-weight: 400;
+    }
+  }
+}
+.row {
+  border-bottom: 1px solid var(--border-color);
+}
+.rowMain {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.1fr) minmax(0, 3fr) 130px;
+  align-items: center;
+  gap: 24px;
+  padding: 22px 0;
+}
+.identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+  }
+}
+.filename {
+  font-family: $font-mono;
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.windows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
+  gap: 20px 24px;
+  min-width: 0;
+}
+.window {
+  min-width: 0;
+  small {
+    display: block;
+    margin-top: 8px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+}
+.windowHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  strong {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    &:hover {
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 3px;
+    }
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  }
+}
+.details {
+  max-width: 640px;
+  padding-bottom: 20px;
+}
+@media (max-width: 1100px) {
+  .rowMain {
+    grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr);
+    gap: 18px;
+  }
+  .actions {
+    grid-column: 2;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+@media (max-width: 600px) {
+  .summaryCell {
+    padding: 20px;
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .rowMain {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding: 22px 0;
+  }
+  .actions {
+    grid-column: 1;
+    justify-content: space-between;
+    button {
+      min-height: 32px;
+    }
+  }
+  .windows {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+}

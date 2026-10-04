@@ -1586,7 +1586,22 @@
     "weekday_wed": "Ср",
     "weekday_thu": "Чт",
     "weekday_fri": "Пт",
-    "weekday_sat": "Сб"
+    "weekday_sat": "Сб",
+    "show_emails": "Показать email",
+    "hide_emails": "Скрыть email",
+    "layout_ledger": "Таблица",
+    "layout_cards": "Карточки",
+    "layout_label": "Вид квот",
+    "ledger_of": "из {{value}}%",
+    "ledger_known": "{{known}} / {{total}} включённых аккаунтов с недельными данными",
+    "ledger_summary_hint": "Сумма оставшихся недельных процентов в этом фильтре, а не общий запас токенов. Отключённые аккаунты и неизвестные значения исключены.",
+    "ledger_disabled": "Отключён",
+    "ledger_idle": "Не загружено",
+    "ledger_loading": "Загрузка…",
+    "ledger_error": "Не удалось загрузить квоту. Откройте детали для повтора.",
+    "ledger_success": "Нет данных об окнах квот",
+    "ledger_details": "Детали и действия",
+    "ledger_less": "Скрыть детали"
   },
   "plugin_management": {
     "title": "Управление плагинами",

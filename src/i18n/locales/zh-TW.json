@@ -1607,7 +1607,22 @@
     "weekday_wed": "三",
     "weekday_thu": "四",
     "weekday_fri": "五",
-    "weekday_sat": "六"
+    "weekday_sat": "六",
+    "show_emails": "顯示信箱",
+    "hide_emails": "隱藏信箱",
+    "layout_ledger": "列表",
+    "layout_cards": "卡片",
+    "layout_label": "配額版面",
+    "ledger_of": "共 {{value}}%",
+    "ledger_known": "{{known}} / {{total}} 個已啟用帳號有每週資料",
+    "ledger_summary_hint": "目前篩選範圍內每週剩餘百分比之和，不代表共用的權杖容量。總計不含已停用或資料未知的帳號。",
+    "ledger_disabled": "已停用",
+    "ledger_idle": "尚未載入",
+    "ledger_loading": "載入中…",
+    "ledger_error": "無法載入配額。開啟詳情以重試。",
+    "ledger_success": "未傳回配額視窗",
+    "ledger_details": "詳情與操作",
+    "ledger_less": "收起詳情"
   },
   "plugin_management": {
     "title": "插件管理",
