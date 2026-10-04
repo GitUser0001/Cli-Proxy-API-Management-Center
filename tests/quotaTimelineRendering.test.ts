@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../src/i18n/index';
 import { QuotaTimeline } from '../src/features/quota/components/QuotaTimeline';
 import type { QuotaFileEntry } from '../src/features/quota/logic';
+import { maskQuotaEmails } from '../src/features/quota/ledger';
 import { buildKimiQuotaRows } from '../src/utils/quota';
 
 const entries: QuotaFileEntry[] = [
@@ -21,6 +22,34 @@ const baseProps = {
 };
 
 describe('QuotaTimeline rendering', () => {
+  test('applies email visibility to metadata labels including Devin', () => {
+    for (const type of ['claude', 'codex', 'devin'] as const) {
+      const props = {
+        ...baseProps,
+        entries: [{ type, file: { name: 'managed.json', type, email: 'demo@example.test' } }],
+        quotaFor: () => ({
+          status: 'success' as const,
+          windows: [
+            {
+              id: 'weekly',
+              label: 'Weekly',
+              usedPercent: 25,
+              remainingPercent: 75,
+              resetAtMs: new Date(2026, 7, 1, 12).getTime(),
+              periodHours: 168,
+            },
+          ],
+        }),
+      };
+      const shown = renderToStaticMarkup(createElement(QuotaTimeline, props));
+      expect(shown).toContain('demo@example.test');
+      const hidden = renderToStaticMarkup(
+        createElement(QuotaTimeline, { ...props, displayNameFor: maskQuotaEmails })
+      );
+      expect(hidden).toContain('managed.json');
+      expect(hidden).not.toContain('demo@example.test');
+    }
+  });
   test('shows the selected period date instead of always labelling it Today', () => {
     const markup = renderToStaticMarkup(
       createElement(QuotaTimeline, {

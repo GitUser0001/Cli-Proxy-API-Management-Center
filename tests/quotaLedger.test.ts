@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { getQuotaCacheKey, getQuotaDisplayName } from '../src/utils/quota/identity';
 import {
   ledgerQuota,
   maskQuotaEmails,
@@ -21,6 +22,20 @@ const quota = (used: number | null): ClaudeQuotaState => ({
 });
 
 describe('quota ledger', () => {
+  test('shows email metadata for managed files without renaming their cache identity', () => {
+    for (const provider of ['claude', 'codex']) {
+      const file = { provider, name: `devbox-${provider}.json`, email: ' demo@example.test ' };
+      expect(getQuotaDisplayName(file)).toBe(`${file.name} · demo@example.test`);
+      expect(maskQuotaEmails(getQuotaDisplayName(file))).toBe(`${file.name} · •••@•••`);
+      expect(getQuotaCacheKey(file)).toBe(file.name);
+    }
+    expect(
+      getQuotaDisplayName({ name: 'claude-demo@example.test.json', email: 'demo@example.test' })
+    ).toBe('claude-demo@example.test.json');
+    expect(getQuotaDisplayName({ name: 'devbox.json', account: 'do-not-display' })).toBe(
+      'devbox.json'
+    );
+  });
   test('distinguishes unknown, empty and exhausted capacity', () => {
     expect(remainingPercent(null)).toBeNull();
     expect(remainingPercent(Number.NaN)).toBeNull();

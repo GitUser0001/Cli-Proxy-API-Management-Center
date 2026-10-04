@@ -15,10 +15,14 @@ export function getQuotaCacheKey(file: AuthFileItem): string {
   return `${file.name}${QUOTA_IDENTITY_SEPARATOR}${authIndex ?? ''}`;
 }
 
-/** Disambiguate same-name Devin cards without ever falling back to account (a secret). */
+/** Show available email metadata without changing cache identity or using account secrets. */
 export function getQuotaDisplayName(file: AuthFileItem): string {
-  if (!isDevinFile(file)) return file.name;
-  const identity = file.email?.trim() || normalizeRecentRequestAuthIndex(file.authIndex);
+  const email = file.email?.trim();
+  if (email && !file.name.toLowerCase().includes(email.toLowerCase())) {
+    return `${file.name} · ${email}`;
+  }
+  if (!isDevinFile(file) || email) return file.name;
+  const identity = normalizeRecentRequestAuthIndex(file.authIndex);
   return identity ? `${file.name} · ${identity}` : file.name;
 }
 
