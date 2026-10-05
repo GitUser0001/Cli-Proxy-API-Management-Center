@@ -2,8 +2,12 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import type { DeviceUsage } from '@/services/api/deviceUsage';
+import { obfuscatedStorage } from '@/services/storage/secureStorage';
 import { buildTimeline, colorFor, timelineCsv, type Metric } from './timeline';
+import { chartTimezone, formatChartTime, type ChartTimezone } from './timezone';
 import styles from './DeviceUsagePage.module.scss';
+
+const timezoneStorageKey = 'device-usage-chart-timezone';
 
 interface Props {
   data: DeviceUsage;
@@ -29,6 +33,24 @@ export function UsageTimeline({ data, clients, selected, onSelect }: Props) {
   }, [selected.length, data.timeline]);
   const [metric, setMetric] = useState<Metric>('requests');
   const [view, setView] = useState<'lines' | 'bars'>('lines');
+  const [timezone, setTimezone] = useState<ChartTimezone>(() => {
+    try {
+      return obfuscatedStorage.getItem(timezoneStorageKey, { obfuscate: false }) === 'utc'
+        ? 'utc'
+        : 'local';
+    } catch {
+      return 'local';
+    }
+  });
+  const timeZone = chartTimezone(timezone);
+  const changeTimezone = (value: ChartTimezone) => {
+    setTimezone(value);
+    try {
+      obfuscatedStorage.setItem(timezoneStorageKey, value, { obfuscate: false });
+    } catch {
+      // The switch still works when browser storage is unavailable.
+    }
+  };
   const [cursor, setCursor] = useState<number | null>(null);
   const [pinned, setPinned] = useState(false);
   const points = useMemo(() => buildTimeline(data, selected, metric), [data, selected, metric]);
@@ -56,14 +78,7 @@ export function UsageTimeline({ data, clients, selected, onSelect }: Props) {
       n
     );
   const stamp = (seconds: number, full = false) =>
-    new Date(seconds * 1000).toLocaleString(i18n.language, {
-      timeZone: 'UTC',
-      month: 'short',
-      day: 'numeric',
-      ...(full || data.bucket_seconds! < 86400
-        ? ({ hour: '2-digit', minute: '2-digit', hour12: false } as const)
-        : {}),
-    });
+    formatChartTime(seconds, i18n.language, timeZone, data.bucket_seconds ?? 300, full);
   const left = 54,
     right = plotWidth - 22,
     top = 24,
@@ -128,6 +143,13 @@ export function UsageTimeline({ data, clients, selected, onSelect }: Props) {
             </button>
           ))}
         </div>
+        <div className={styles.segmented} role="group" aria-label={t('device_usage.timezone')}>
+          {(['local', 'utc'] as const).map((key) => (
+            <button key={key} aria-pressed={timezone === key} onClick={() => changeTimezone(key)}>
+              {t(`device_usage.timezone_${key}`)}
+            </button>
+          ))}
+        </div>
       </div>
       <div className={styles.legend} role="group" aria-label={t('device_usage.filter_users')}>
         {clients.map((client, i) => (
@@ -173,7 +195,7 @@ export function UsageTimeline({ data, clients, selected, onSelect }: Props) {
             </strong>
             <span>
               {t('device_usage.selected_users', { count: selected.length })} ·{' '}
-              {t(`device_usage.interval_${data.interval ?? 'auto'}`)} · UTC
+              {t(`device_usage.interval_${data.interval ?? 'auto'}`)} · {timeZone}
             </span>
           </div>
           <div className={styles.chartLayout}>
@@ -338,7 +360,7 @@ export function UsageTimeline({ data, clients, selected, onSelect }: Props) {
                 aria-label={t('device_usage.explore')}
                 aria-valuetext={
                   point
-                    ? `${stamp(point.bucket, true)} UTC: ${number(point.total)} ${t(`device_usage.${metric}`)}`
+                    ? `${stamp(point.bucket, true)}: ${number(point.total)} ${t(`device_usage.${metric}`)}`
                     : ''
                 }
                 onChange={(e) => {
