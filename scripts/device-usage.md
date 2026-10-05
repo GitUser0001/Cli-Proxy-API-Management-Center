@@ -26,7 +26,7 @@ Verification for ledger.4: 1499 Bun tests, lint and TypeScript/Vite build; seven
 
 ## People grouping (ledger.5)
 
-The UI combines `dan-macbook` and `devbox-dshcherbak` as **Dan**, and displays `devbox-dlukianenko` as **Denis**, `devbox-hhodovaniuk` as **Hlib**, and `devbox-dplokhuta` as **Dima**. `dan-test-app` and unknown/new clients remain separate. This presentation mapping lives in `src/features/deviceUsage/timeline.ts`; the API response and SQLite per-key history are unchanged. Grouping combines additive counters by person, bucket and model; latency is weighted by attempts. Filters, summary cards, model tables and CSV use the same grouped values. CSV labels its identity column `person_or_app`. No collector/backend restart or data migration is required.
+The UI combines `dan-macbook` and `devbox-dshcherbak` as **Dan**, and combines each VM/laptop pair: `devbox-dlukianenko` + `laptop-dlukianenko` as **Denis**, `devbox-hhodovaniuk` + `laptop-hhodovaniuk` as **Hlib**, and `devbox-dplokhuta` + `laptop-dplokhuta` as **Dima**. `dan-test-app`, `portal-demo-app` and unknown/new clients remain separate. This presentation mapping lives in `src/features/deviceUsage/timeline.ts`; the API response and SQLite per-key history are unchanged. Grouping combines additive counters by person, bucket and model; latency is weighted by attempts. Filters, summary cards, model tables and CSV use the same grouped values. CSV labels its identity column `person_or_app`. No collector/backend restart or data migration is required.
 
 
 ## API estimate (ledger.6)

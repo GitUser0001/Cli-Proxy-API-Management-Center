@@ -41,8 +41,11 @@ const people: Readonly<Record<string, string>> = {
   'dan-macbook': 'Dan',
   'devbox-dshcherbak': 'Dan',
   'devbox-dlukianenko': 'Denis',
+  'laptop-dlukianenko': 'Denis',
   'devbox-hhodovaniuk': 'Hlib',
+  'laptop-hhodovaniuk': 'Hlib',
   'devbox-dplokhuta': 'Dima',
+  'laptop-dplokhuta': 'Dima',
 };
 
 export function groupUsageByPerson(data: DeviceUsage): DeviceUsage {

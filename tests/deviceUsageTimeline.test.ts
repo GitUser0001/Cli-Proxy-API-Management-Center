@@ -79,6 +79,43 @@ describe('Device usage time series', () => {
 });
 
 describe('Device usage grouped by person', () => {
+  test('combines each new laptop with its owner across cards, models, timeline and CSV', () => {
+    const bucket = data.timeline![0].bucket;
+    for (const [user, person] of [
+      ['dplokhuta', 'Dima'],
+      ['dlukianenko', 'Denis'],
+      ['hhodovaniuk', 'Hlib'],
+    ]) {
+      const clients = [
+        { ...metrics(3, 90), client: `devbox-${user}`, cost_usd: 0.75, unpriced_executions: 0 },
+        { ...metrics(2, 60), client: `laptop-${user}`, cost_usd: 1.25, unpriced_executions: 1 },
+        { ...metrics(1, 20), client: 'portal-demo-app', cost_usd: 0.25, unpriced_executions: 0 },
+      ];
+      const raw: DeviceUsage = {
+        ...data,
+        totals: sumMetrics(clients),
+        clients,
+        timeline: clients.map((row) => ({ ...row, bucket })),
+        client_models: clients.map((row) => ({ ...row, provider: 'claude', model: 'm' })),
+      };
+      const grouped = groupUsageByPerson(raw);
+      expect(grouped.clients.map((row) => row.client)).toEqual([person, 'portal-demo-app']);
+      expect(grouped.totals).toEqual(raw.totals);
+      expect(sumMetrics(grouped.clients)).toEqual(raw.totals);
+      expect(buildTimeline(grouped, [person], 'requests')[0].total).toBe(5);
+      expect(modelRows(grouped, [person])[0].total).toBe(150);
+      const card = personModelRows(grouped, [person])![0];
+      expect(card.requests).toBe(5);
+      expect(card.cost_usd).toBe(2);
+      expect(card.unpriced_executions).toBe(1);
+      expect(card.models[0].requests).toBe(5);
+      expect(card.providers[0].executions).toBe(5);
+      const csv = timelineCsv(grouped, [person]);
+      expect(csv).toContain(`"${person}","5","150","0"`);
+      expect(csv).not.toContain(`laptop-${user}`);
+      expect(raw.clients[1].client).toBe(`laptop-${user}`);
+    }
+  });
   test('combines Dan across devices in totals, overlapping buckets, model filters and CSV', () => {
     const bucket = data.timeline![0].bucket;
     const mac = { ...metrics(2, 60), latency_ms: 100, client: 'dan-macbook' };
