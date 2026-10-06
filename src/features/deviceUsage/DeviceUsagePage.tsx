@@ -252,11 +252,6 @@ export function DeviceUsagePage() {
               </a>
             </details>
           )}
-          {hasPricing && Boolean(totals.unpriced_executions) && (
-            <p className={styles.notice}>
-              {t('device_usage.cost_unpriced', { count: totals.unpriced_executions })}
-            </p>
-          )}
           <div className={styles.status} role="status">
             <span className={stale ? styles.stale : styles.live}>
               {t(stale ? 'device_usage.stale' : 'device_usage.collecting')}
