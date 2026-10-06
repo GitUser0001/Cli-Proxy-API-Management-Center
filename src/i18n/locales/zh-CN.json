@@ -219,7 +219,7 @@
     "today_retry": "重试",
     "calendar_eyebrow": "使用历史",
     "calendar_title": "按周期查看使用量",
-    "calendar_description": "按日、周或月比较记录的代币价值和活动。选择柱形查看详情。",
+    "calendar_description": "按日、周或月比较记录的令牌价值与活动。悬停或选择柱形以查看每个人的份额。",
     "calendar_period": "周期",
     "calendar_metric": "指标",
     "calendar_day": "日",
@@ -243,7 +243,10 @@
     "calendar_unavailable": "使用历史暂不可用。",
     "hero_team_value": "团队 Token 价值",
     "hero_team_scope": "4 人 · USD",
-    "hero_api_estimate": "API 价值估算"
+    "hero_api_estimate": "API 价值估算",
+    "calendar_people": "按人员分布",
+    "calendar_apps": "应用及其他",
+    "calendar_loading": "正在加载使用历史…"
   },
   "basic_settings": {
     "debug_enable": "启用调试模式",

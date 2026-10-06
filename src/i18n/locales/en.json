@@ -219,7 +219,7 @@
     "today_retry": "Retry",
     "calendar_eyebrow": "Usage history",
     "calendar_title": "Usage, one period at a time",
-    "calendar_description": "Compare recorded token value and activity by calendar day, week or month. Select a column for its details.",
+    "calendar_description": "Compare recorded token value and activity by calendar day, week or month. Hover or select a column to see each person’s share.",
     "calendar_period": "Period",
     "calendar_metric": "Metric",
     "calendar_day": "Days",
@@ -243,7 +243,10 @@
     "calendar_unavailable": "Usage history is unavailable.",
     "hero_team_value": "Team token value",
     "hero_team_scope": "4 people · USD",
-    "hero_api_estimate": "Estimated API value"
+    "hero_api_estimate": "Estimated API value",
+    "calendar_people": "Per-person breakdown",
+    "calendar_apps": "Apps & other",
+    "calendar_loading": "Loading usage history…"
   },
   "basic_settings": {
     "debug_enable": "Enable Debug Mode",

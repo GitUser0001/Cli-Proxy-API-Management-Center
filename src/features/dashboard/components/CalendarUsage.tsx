@@ -6,6 +6,7 @@ import { formatCost } from '@/features/deviceUsage/cost';
 import { colorFor, sumMetrics } from '@/features/deviceUsage/timeline';
 import { formatCompactNumber } from '@/utils/format';
 import {
+  calendarPeople,
   calendarScale,
   calendarValue,
   type CalendarBucket,
@@ -39,6 +40,7 @@ export function CalendarUsage({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const rows = data?.series ?? [];
   const chosen = rows.find((row) => row.period_start === activeKey) ?? rows[rows.length - 1];
+  const people = calendarPeople(chosen);
   const peak = Math.max(0, ...rows.map((row) => calendarValue(row, metric) ?? 0));
   const scale = calendarScale(peak, metric);
   const total = sumMetrics(rows.filter((row) => row.available));
@@ -101,7 +103,10 @@ export function CalendarUsage({
                 <button
                   key={value}
                   aria-pressed={value === granularity}
-                  onClick={() => onGranularity(value)}
+                  onClick={() => {
+                    setActiveKey(null);
+                    onGranularity(value);
+                  }}
                 >
                   {t(`dashboard.calendar_${value}`)}
                 </button>
@@ -138,175 +143,217 @@ export function CalendarUsage({
             </strong>
           </div>
         </div>
-        {data ? (
-          <figure className={chart.chart}>
-            <figcaption className={styles.caption}>
-              {timezone} · {t('dashboard.calendar_current_partial')}
-            </figcaption>
-            <div className={chart.plot}>
-              <div className={`${chart.yAxis} ${styles.yAxis}`} aria-hidden="true">
+        <figure className={chart.chart}>
+          <figcaption className={styles.caption}>
+            {timezone} · {t('dashboard.calendar_current_partial')}
+          </figcaption>
+          <div className={`${chart.plot} ${styles.plot}`}>
+            {!data && (
+              <div className={styles.state} role="status">
+                {t(error ? 'dashboard.calendar_unavailable' : 'dashboard.calendar_loading')}
+                {error && (
+                  <button className="btn btn-secondary" disabled={loading} onClick={onRetry}>
+                    {t('dashboard.today_retry')}
+                  </button>
+                )}
+              </div>
+            )}
+            <div
+              className={`${chart.yAxis} ${styles.yAxis}`}
+              aria-hidden="true"
+              style={!data ? { visibility: 'hidden' } : undefined}
+            >
+              {[0, 1, 2, 3, 4].map((i) => (
+                <span className={chart.yTick} key={i} style={{ top: `${i * 25}%` }}>
+                  {tickLabel(scale * (1 - i / 4))}
+                </span>
+              ))}
+            </div>
+            <div className={chart.canvas}>
+              <div className={chart.gridlines} aria-hidden="true">
                 {[0, 1, 2, 3, 4].map((i) => (
-                  <span className={chart.yTick} key={i} style={{ top: `${i * 25}%` }}>
-                    {tickLabel(scale * (1 - i / 4))}
-                  </span>
+                  <span key={i} className={chart.gridline} style={{ top: `${i * 25}%` }} />
                 ))}
               </div>
-              <div className={chart.canvas}>
-                <div className={chart.gridlines} aria-hidden="true">
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <span key={i} className={chart.gridline} style={{ top: `${i * 25}%` }} />
-                  ))}
-                </div>
-                <div className={chart.columns}>
-                  {rows.map((row, index) => {
-                    const value = calendarValue(row, metric);
-                    return (
-                      <button
-                        key={row.period_start}
-                        className={`${styles.barButton} ${chosen === row ? styles.active : ''}`}
-                        aria-label={`${periodLabel(row)}: ${valueLabel(row)} ${t(`dashboard.calendar_${metric}`)}`}
-                        aria-pressed={chosen === row}
-                        title={
-                          metric === 'cost' && row.unpriced_executions
-                            ? t('dashboard.today_partial')
-                            : undefined
+              <div className={chart.columns}>
+                {rows.map((row, index) => {
+                  const value = calendarValue(row, metric);
+                  return (
+                    <button
+                      key={row.period_start}
+                      className={`${styles.barButton} ${chosen === row ? styles.active : ''}`}
+                      aria-label={`${periodLabel(row)}: ${valueLabel(row)} ${t(`dashboard.calendar_${metric}`)}`}
+                      aria-pressed={chosen === row}
+                      title={
+                        metric === 'cost' && row.unpriced_executions
+                          ? t('dashboard.today_partial')
+                          : undefined
+                      }
+                      onMouseEnter={() => setActiveKey(row.period_start)}
+                      onFocus={() => setActiveKey(row.period_start)}
+                      onClick={() => setActiveKey(row.period_start)}
+                      onKeyDown={keyboard}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`${styles.bar} ${value === null ? styles.unknown : ''} ${row.is_current ? styles.current : ''}`}
+                        style={
+                          {
+                            height:
+                              value === null
+                                ? '12px'
+                                : `${Math.max(value > 0 ? 1 : 0, (value / scale) * 100)}%`,
+                            '--bar-color':
+                              metric === 'cost'
+                                ? 'var(--viz-success)'
+                                : metric === 'requests'
+                                  ? colorFor(0)
+                                  : 'var(--amber-color)',
+                          } as CSSProperties
                         }
-                        onMouseEnter={(event) => {
-                          if (
-                            !event.currentTarget.parentElement?.contains(document.activeElement)
-                          ) {
-                            setActiveKey(row.period_start);
-                          }
-                        }}
-                        onFocus={() => setActiveKey(row.period_start)}
-                        onClick={() => setActiveKey(row.period_start)}
-                        onKeyDown={keyboard}
-                      >
+                      />
+                      {rows.length <= 8 && value !== null && value > 0 && (
                         <span
+                          className={styles.barValue}
                           aria-hidden="true"
-                          className={`${styles.bar} ${value === null ? styles.unknown : ''} ${row.is_current ? styles.current : ''}`}
-                          style={
-                            {
-                              height:
-                                value === null
-                                  ? '12px'
-                                  : `${Math.max(value > 0 ? 1 : 0, (value / scale) * 100)}%`,
-                              '--bar-color':
-                                metric === 'cost'
-                                  ? 'var(--viz-success)'
-                                  : metric === 'requests'
-                                    ? colorFor(0)
-                                    : 'var(--amber-color)',
-                            } as CSSProperties
-                          }
-                        />
-                        {rows.length <= 8 && value !== null && value > 0 && (
-                          <span
-                            className={styles.barValue}
-                            aria-hidden="true"
-                            style={{ bottom: `${Math.max(1, (value / scale) * 100)}%` }}
-                          >
-                            {metric === 'cost' ? cost(row) : formatCompactNumber(value)}
-                          </span>
-                        )}
-                        <span className={styles.date} aria-hidden="true">
-                          {row.is_current
-                            ? t('dashboard.calendar_current')
-                            : rows.length <= 8
-                              ? dateLabel(row.period_start)
-                              : index === 0 || index === rows.length - 1
-                                ? dateLabel(row.period_start)
-                                : ''}
+                          style={{ bottom: `${Math.max(1, (value / scale) * 100)}%` }}
+                        >
+                          {metric === 'cost' ? cost(row) : formatCompactNumber(value)}
                         </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                      )}
+                      <span
+                        className={`${styles.date} ${index !== 0 && index !== Math.floor((rows.length - 1) / 2) && index !== rows.length - 1 ? styles.sparseDate : ''}`}
+                        aria-hidden="true"
+                      >
+                        {row.is_current
+                          ? t('dashboard.calendar_current')
+                          : rows.length <= 8
+                            ? dateLabel(row.period_start)
+                            : index === 0 || index === rows.length - 1
+                              ? dateLabel(row.period_start)
+                              : ''}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            {chosen && (
-              <div className={styles.detail} aria-live="polite">
-                <div className={styles.detailDate}>
-                  <strong>{periodLabel(chosen)}</strong>
-                  <span>
-                    {!chosen.available
-                      ? t('dashboard.calendar_no_history')
-                      : chosen.partial
-                        ? t('dashboard.calendar_partial')
-                        : t('dashboard.calendar_complete')}
+          </div>
+          <div className={styles.detail} aria-live="polite">
+            <div className={styles.detailDate}>
+              <strong>{chosen ? periodLabel(chosen) : '—'}</strong>
+              <span>
+                {!chosen
+                  ? t(error ? 'dashboard.calendar_unavailable' : 'dashboard.calendar_loading')
+                  : !chosen.available
+                    ? t('dashboard.calendar_no_history')
+                    : chosen.partial
+                      ? t('dashboard.calendar_partial')
+                      : t('dashboard.calendar_complete')}
+              </span>
+            </div>
+            <dl>
+              {[
+                ['cost', chosen ? cost(chosen) : '—'],
+                ['requests', chosen?.available ? count.format(chosen.requests) : '—'],
+                ['tokens', chosen?.available ? formatCompactNumber(chosen.total) : '—'],
+                ['failures', chosen?.available ? count.format(chosen.errors) : '—'],
+              ].map(([key, value]) => (
+                <div key={key}>
+                  <dt>{t(`dashboard.calendar_${key}`)}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <div
+            className={styles.people}
+            role="group"
+            aria-live="polite"
+            aria-label={t('dashboard.calendar_people')}
+          >
+            {people.map((person) => {
+              const value = calendarValue(person, metric);
+              const amount = !person.available
+                ? '—'
+                : metric === 'cost'
+                  ? formatCost(person, i18n.language)
+                  : metric === 'requests'
+                    ? count.format(person.requests)
+                    : formatCompactNumber(person.total);
+              const full = chosen ? calendarValue(chosen, metric) : null;
+              const share = value !== null && full && full > 0 ? value / full : 0;
+              return (
+                <div key={person.name} className={styles.person}>
+                  <span className={styles.personName}>
+                    <i style={{ background: colorFor(person.colorIndex) }} aria-hidden="true" />
+                    {person.name === 'apps' ? t('dashboard.calendar_apps') : person.name}
+                  </span>
+                  <strong
+                    title={person.unpriced_executions ? t('dashboard.today_partial') : undefined}
+                  >
+                    {amount}
+                  </strong>
+                  <span className={styles.share} aria-hidden="true">
+                    <i
+                      style={{
+                        width: `${Math.min(100, share * 100)}%`,
+                        background: colorFor(person.colorIndex),
+                      }}
+                    />
                   </span>
                 </div>
-                <dl>
-                  {[
-                    ['cost', cost(chosen)],
-                    ['requests', chosen.available ? count.format(chosen.requests) : '—'],
-                    ['tokens', chosen.available ? formatCompactNumber(chosen.total) : '—'],
-                    ['failures', chosen.available ? count.format(chosen.errors) : '—'],
-                  ].map(([key, value]) => (
-                    <div key={key}>
-                      <dt>{t(`dashboard.calendar_${key}`)}</dt>
-                      <dd>{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            )}
-            <Collapsible className={chart.tableToggle} label={t('dashboard.traffic_table')}>
-              <div className={styles.tableWrap}>
-                <table className={chart.table}>
-                  <thead>
-                    <tr>
-                      {['period', 'cost', 'requests', 'tokens', 'failures'].map((key) => (
-                        <th key={key} scope="col">
-                          {t(`dashboard.calendar_${key}`)}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.period_start}>
-                        <th scope="row">
-                          {periodLabel(row)}
-                          {row.partial && row.available ? ' *' : ''}
-                        </th>
-                        <td>{cost(row)}</td>
-                        <td>{row.available ? count.format(row.requests) : '—'}</td>
-                        <td>{row.available ? count.format(row.total) : '—'}</td>
-                        <td>{row.available ? count.format(row.errors) : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Collapsible>
-            <p className={styles.note}>
-              {t('dashboard.today_estimate')} · {t('dashboard.calendar_all_clients')}
-              {data.history_start && (
-                <>
-                  {' '}
-                  ·{' '}
-                  {t('dashboard.calendar_history', {
-                    date: new Intl.DateTimeFormat(i18n.language, {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                      timeZone: timezone,
-                    }).format(new Date(data.history_start)),
-                  })}
-                </>
-              )}
-            </p>
-          </figure>
-        ) : (
-          <div className={styles.state} role="status">
-            {t(error ? 'dashboard.calendar_unavailable' : 'dashboard.today_loading')}
-            {error && (
-              <button className="btn btn-secondary" disabled={loading} onClick={onRetry}>
-                {t('dashboard.today_retry')}
-              </button>
-            )}
+              );
+            })}
           </div>
-        )}
+          <Collapsible className={chart.tableToggle} label={t('dashboard.traffic_table')}>
+            <div className={styles.tableWrap}>
+              <table className={chart.table}>
+                <thead>
+                  <tr>
+                    {['period', 'cost', 'requests', 'tokens', 'failures'].map((key) => (
+                      <th key={key} scope="col">
+                        {t(`dashboard.calendar_${key}`)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.period_start}>
+                      <th scope="row">
+                        {periodLabel(row)}
+                        {row.partial && row.available ? ' *' : ''}
+                      </th>
+                      <td>{cost(row)}</td>
+                      <td>{row.available ? count.format(row.requests) : '—'}</td>
+                      <td>{row.available ? count.format(row.total) : '—'}</td>
+                      <td>{row.available ? count.format(row.errors) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Collapsible>
+          <p className={styles.note}>
+            {t('dashboard.today_estimate')} · {t('dashboard.calendar_all_clients')}
+            {data?.history_start ? (
+              <>
+                {' '}
+                ·{' '}
+                {t('dashboard.calendar_history', {
+                  date: new Intl.DateTimeFormat(i18n.language, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                    timeZone: timezone,
+                  }).format(new Date(data.history_start)),
+                })}
+              </>
+            ) : (
+              <> · {t('dashboard.calendar_history', { date: '—' })}</>
+            )}
+          </p>
+        </figure>
       </div>
     </section>
   );

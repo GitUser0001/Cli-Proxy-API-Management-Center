@@ -24,6 +24,7 @@ export interface DeviceUsage {
   calendar_count?: number;
   history_start?: string | null;
   series?: (UsageMetrics & {
+    clients?: (UsageMetrics & { client: string })[];
     period_start: string;
     available: boolean;
     is_current: boolean;

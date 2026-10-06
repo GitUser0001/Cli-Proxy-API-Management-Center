@@ -231,11 +231,16 @@ def report(c, days, registry, interval='auto', now=None, period='rolling', timez
         history = dt.datetime.fromisoformat(history_start) if history_start else None
         grouped = {r['period_start']: r for r in query(
             f'SELECT usage_period(ts) AS period_start,{aggregate} FROM events WHERE {window} GROUP BY period_start ORDER BY period_start')}
+        by_period = {}
+        for row in query(f'SELECT usage_period(ts) AS period_start,client,{aggregate} FROM events WHERE {window} GROUP BY period_start,client ORDER BY period_start,client'):
+            key = row.pop('period_start')
+            by_period.setdefault(key, []).append(row)
         series = []
         for index, date in enumerate(starts):
             start = dt.datetime.combine(date, dt.time.min, zone).astimezone(dt.timezone.utc)
             end = min(now, dt.datetime.combine(shift_period(date, granularity, 1), dt.time.min, zone).astimezone(dt.timezone.utc))
             series.append(dict(grouped.get(date.isoformat(), empty), period_start=date.isoformat(),
+                               clients=by_period.get(date.isoformat(), []),
                                available=history is not None and history < end,
                                is_current=index == len(starts)-1,
                                partial=index == len(starts)-1 or (history is not None and history > start)))

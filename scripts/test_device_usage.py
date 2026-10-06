@@ -248,6 +248,31 @@ class CalendarTests(unittest.TestCase):
             'Asia/Kolkata','day',2,['2026-10-05T18:29:59Z','2026-10-05T18:30:00Z'])
         self.assertEqual([r['executions'] for r in result['series']],[1,1])
 
+    def test_bucket_clients_reconcile_for_days_weeks_and_months(self):
+        import datetime as dt
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'calendar-clients.db')
+            registry = {hashlib.sha256(key.encode()).hexdigest(): key for key in ['vm', 'laptop', 'app']}
+            for index, (stamp, key, model) in enumerate([
+                ('2026-10-04T20:59:59Z', 'vm', 'claude-opus-5-5'),
+                ('2026-10-04T21:00:00Z', 'laptop', 'claude-opus-5-5'),
+                ('2026-10-05T21:00:00Z', 'app', 'unknown-model'),
+            ]):
+                event = UsageTests().event()
+                event.update(execution_id=str(index), timestamp=stamp, api_key=key, model=model)
+                u.record_batch(c, [event], registry)
+            for granularity in ['day', 'week', 'month']:
+                result = u.report(c, 90, registry, now=dt.datetime(2026,10,6,10,tzinfo=dt.timezone.utc),
+                    period='calendar', timezone='Europe/Kyiv', granularity=granularity, calendar_count=7 if granularity!='month' else 6)
+                for bucket in result['series']:
+                    for metric in ['executions','requests','input','output','total','unpriced_executions']:
+                        self.assertEqual(sum(row[metric] for row in bucket['clients']), bucket[metric])
+                    self.assertAlmostEqual(sum(row['cost_usd'] for row in bucket['clients']), bucket['cost_usd'])
+                if granularity == 'day':
+                    self.assertEqual([row['client'] for row in result['series'][-3]['clients']], ['vm'])
+                    self.assertEqual([row['client'] for row in result['series'][-2]['clients']], ['laptop'])
+            c.close()
+
     def test_empty_and_bounded_calendar(self):
         import datetime as dt
         now=dt.datetime(2026,10,6,10,tzinfo=dt.timezone.utc)

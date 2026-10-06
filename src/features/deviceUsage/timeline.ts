@@ -50,16 +50,17 @@ const people: Readonly<Record<string, string>> = {
 
 export const personNames = ['Dan', 'Denis', 'Hlib', 'Dima'] as const;
 
+export const personForClient = (client: string) =>
+  Object.prototype.hasOwnProperty.call(people, client) ? people[client] : client;
+
 export function groupUsageByPerson(data: DeviceUsage): DeviceUsage {
-  const name = (client: string) =>
-    Object.prototype.hasOwnProperty.call(people, client) ? people[client] : client;
   function group<T extends UsageMetrics & { client: string }>(
     rows: T[],
     key: (row: T) => string
   ): T[] {
     const groups = new Map<string, T[]>();
     for (const row of rows) {
-      const renamed = { ...row, client: name(row.client) };
+      const renamed = { ...row, client: personForClient(row.client) };
       const id = key(renamed);
       const values = groups.get(id);
       if (values) values.push(renamed);

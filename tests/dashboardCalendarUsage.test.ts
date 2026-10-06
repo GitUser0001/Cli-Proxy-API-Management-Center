@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import {
+  calendarPeople,
   calendarScale,
   calendarValue,
   type CalendarBucket,
@@ -37,4 +38,34 @@ test('calendar dollar scale keeps sub-cent usage visible', () => {
   expect(calendarScale(163, 'cost')).toBe(200);
   expect(calendarScale(0, 'cost')).toBe(1);
   expect(calendarScale(79, 'requests')).toBe(80);
+});
+
+test('calendar breakdown groups laptop and VM people and keeps apps separate', () => {
+  const bucket = {
+    ...row,
+    clients: [
+      { ...row, client: 'devbox-dplokhuta', cost_usd: 2 },
+      { ...row, client: 'laptop-dplokhuta', cost_usd: 3 },
+      { ...row, client: 'portal-demo-app', cost_usd: 4 },
+    ],
+  };
+  const people = calendarPeople(bucket);
+  expect(people.map((person) => person.name)).toEqual(['Dan', 'Denis', 'Hlib', 'Dima', 'apps']);
+  expect(people[3].cost_usd).toBe(5);
+  expect(people[3].requests).toBe(2);
+  expect(people[4].cost_usd).toBe(4);
+  expect(people.reduce((sum, person) => sum + person.cost_usd!, 0)).toBe(9);
+  expect(people[0].cost_usd).toBe(0);
+});
+test('absent bucket breakdown and missing history never imply zero usage', () => {
+  expect(calendarPeople().every((person) => !person.available)).toBe(true);
+  expect(calendarPeople(row).every((person) => !person.available)).toBe(true);
+  expect(
+    calendarPeople({ ...row, available: false, clients: [] }).every((person) => !person.available)
+  ).toBe(true);
+  expect(
+    calendarPeople({ ...row, clients: [] }).every(
+      (person) => person.available && person.cost_usd === 0
+    )
+  ).toBe(true);
 });
