@@ -11,17 +11,18 @@ import {
 } from '@/components/ui/icons';
 import { useAuthStore } from '@/stores';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
-import { formatCompactNumber, formatDateValue, formatPercent } from '@/utils/format';
+import { formatDateValue, formatPercent } from '@/utils/format';
 import { useDashboardOverview } from './hooks/useDashboardOverview';
 import { useDashboardUsage } from './hooks/useDashboardUsage';
 import type { CalendarGranularity } from '@/services/api/deviceUsage';
 import { CalendarUsage } from './components/CalendarUsage';
+import { TeamSpendHero } from './components/TeamSpendHero';
 import { TodaySpend } from './components/TodaySpend';
 import { LiveWire } from './components/LiveWire';
 import { Meter } from './components/Meter';
 import { Sparkline } from './components/Sparkline';
 import { ThroughputChart } from './components/ThroughputChart';
-import { useCountUp, useRevealGroup, useRevealOnScroll } from '@/hooks/motion';
+import { useRevealGroup, useRevealOnScroll } from '@/hooks/motion';
 import { providerLabel, splitWindowMinutes, toneForSuccessRate, type MeterTone } from './utils';
 import styles from './dashboard.module.scss';
 
@@ -34,10 +35,6 @@ const TILE_ACCENTS: Record<MeterTone, string> = {
   critical: 'var(--viz-failure)',
   idle: 'var(--text-quaternary)',
 };
-
-/** 大数字：六位以内用千分位，再往上压缩，避免撑破排版 */
-const formatHeadline = (value: number): string =>
-  value < 100_000 ? value.toLocaleString() : formatCompactNumber(value);
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
@@ -61,8 +58,6 @@ export function DashboardPage() {
   const fleetRef = useRevealOnScroll<HTMLElement>();
   const detailRef = useRevealGroup<HTMLElement>();
   const ctaRef = useRevealGroup<HTMLElement>();
-
-  const animatedTotal = useCountUp(traffic.total, connected);
 
   const windowLabel = useMemo(() => {
     if (traffic.windowMinutes <= 0) return DASH;
@@ -266,51 +261,12 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className={styles.heroPanel} data-reveal="scale">
-            <div className={styles.heroPanelTop}>
-              <span className={styles.heroPanelLabel}>{t('dashboard.hero_requests_label')}</span>
-              {connected && (
-                <span className={styles.liveBadge}>
-                  <i className={styles.liveDot} aria-hidden="true" />
-                  {t('dashboard.hero_live')}
-                </span>
-              )}
-            </div>
-            <strong className={styles.heroFigure}>
-              {connected ? formatHeadline(animatedTotal) : DASH}
-            </strong>
-            <span className={styles.heroPanelMeta}>
-              {t('dashboard.hero_window_meta', { window: windowLabel })}
-            </span>
-            {traffic.total > 0 && (
-              <div className={styles.ratioBar} aria-hidden="true">
-                {traffic.totalSuccess > 0 && (
-                  <span
-                    className={`${styles.ratioSegment} ${styles.splitSuccess}`}
-                    style={{ flexGrow: traffic.totalSuccess }}
-                  />
-                )}
-                {traffic.totalFailure > 0 && (
-                  <span
-                    className={`${styles.ratioSegment} ${styles.splitFailure}`}
-                    style={{ flexGrow: traffic.totalFailure }}
-                  />
-                )}
-              </div>
-            )}
-            <div className={styles.heroSplit}>
-              <span className={styles.heroSplitItem}>
-                <i className={`${styles.splitSwatch} ${styles.splitSuccess}`} aria-hidden="true" />
-                {t('stats.success')}
-                <b>{traffic.totalSuccess.toLocaleString()}</b>
-              </span>
-              <span className={styles.heroSplitItem}>
-                <i className={`${styles.splitSwatch} ${styles.splitFailure}`} aria-hidden="true" />
-                {t('stats.failure')}
-                <b>{traffic.totalFailure.toLocaleString()}</b>
-              </span>
-            </div>
-          </div>
+          <TeamSpendHero
+            data={today.data}
+            loading={today.loading}
+            error={today.error}
+            timezone={today.timezone}
+          />
 
           <div className={styles.heroWire}>
             <LiveWire

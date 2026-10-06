@@ -240,7 +240,10 @@
     "calendar_complete": "完整周期",
     "calendar_all_clients": "人员和应用合计",
     "calendar_history": "历史记录始于 {{date}}",
-    "calendar_unavailable": "使用历史暂不可用。"
+    "calendar_unavailable": "使用历史暂不可用。",
+    "hero_team_value": "团队 Token 价值",
+    "hero_team_scope": "4 人 · USD",
+    "hero_api_estimate": "API 价值估算"
   },
   "basic_settings": {
     "debug_enable": "启用调试模式",

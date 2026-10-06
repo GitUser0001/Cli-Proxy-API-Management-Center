@@ -239,7 +239,10 @@
     "calendar_complete": "Полный период",
     "calendar_all_clients": "Люди и приложения вместе",
     "calendar_history": "История записана с {{date}}",
-    "calendar_unavailable": "История использования недоступна."
+    "calendar_unavailable": "История использования недоступна.",
+    "hero_team_value": "Стоимость токенов команды",
+    "hero_team_scope": "4 человека · USD",
+    "hero_api_estimate": "Оценка по тарифам API"
   },
   "basic_settings": {
     "debug_enable": "Включить режим отладки",

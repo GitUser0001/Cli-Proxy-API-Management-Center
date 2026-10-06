@@ -327,55 +327,23 @@
   color: var(--text-secondary);
 }
 
-/* 成功/失败构成比例条 */
-.ratioBar {
-  display: flex;
-  gap: 2px;
-  height: 6px;
-  margin-top: $spacing-sm;
+.heroSpend {
+  container-type: inline-size;
 }
-
-.ratioSegment {
-  display: block;
-  min-width: 4px;
-  border-radius: 3px;
+.heroCurrency {
+  font-size: clamp(28px, calc(100cqw / var(--money-chars) * 1.55), 62px);
+  margin-top: 6px;
 }
-
-.heroSplit {
+.heroSpendFoot {
   display: flex;
   flex-wrap: wrap;
-  gap: $spacing-md;
-  padding-top: $spacing-sm;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-color);
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.heroSplitItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-
-  b {
-    font-family: $font-mono;
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.splitSwatch {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  flex: none;
-}
-
-.splitSuccess {
-  background: var(--viz-success);
-}
-
-.splitFailure {
-  background: var(--viz-failure);
+  font-size: 11px;
+  color: var(--text-tertiary);
 }
 
 /* ---------- KPI 行 ---------- */

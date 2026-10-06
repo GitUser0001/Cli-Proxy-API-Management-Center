@@ -240,7 +240,10 @@
     "calendar_complete": "完整週期",
     "calendar_all_clients": "人員和應用合計",
     "calendar_history": "歷史記錄始於 {{date}}",
-    "calendar_unavailable": "使用歷史暫不可用。"
+    "calendar_unavailable": "使用歷史暫不可用。",
+    "hero_team_value": "團隊 Token 價值",
+    "hero_team_scope": "4 人 · USD",
+    "hero_api_estimate": "API 價值估算"
   },
   "basic_settings": {
     "debug_enable": "啟用除錯模式",

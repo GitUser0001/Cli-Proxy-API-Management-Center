@@ -240,7 +240,10 @@
     "calendar_complete": "Complete period",
     "calendar_all_clients": "People and apps combined",
     "calendar_history": "Recorded history from {{date}}",
-    "calendar_unavailable": "Usage history is unavailable."
+    "calendar_unavailable": "Usage history is unavailable.",
+    "hero_team_value": "Team token value",
+    "hero_team_scope": "4 people · USD",
+    "hero_api_estimate": "Estimated API value"
   },
   "basic_settings": {
     "debug_enable": "Enable Debug Mode",
