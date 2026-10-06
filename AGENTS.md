@@ -32,7 +32,7 @@ Use Bun; `package.json` pins `bun@1.3.14`, and CI uses Node.js 24. Keep dependen
 
 The production artifact is a single `dist/index.html` with JS/CSS and bundled assets inlined by `vite-plugin-singlefile`. The release workflow renames it to `management.html` for backend hosting; `vX.Y.Z` tags trigger releases.
 
-Preserve hash routing and single-file deployment. Changes to assets, imports, code splitting, or build configuration must not introduce required external build artifacts. Do not edit generated `dist/` files. App version is injected as `__APP_VERSION__` from `VERSION`, then git tags, then the package version, falling back to `dev`.
+Preserve hash routing and single-file deployment. Changes to assets, imports, code splitting, or build configuration must not introduce required external build artifacts. The optional iOS Home Screen icon is the sole static exception: deploy `dist/apple-touch-icon.png` beside `management.html` and serve `/apple-touch-icon.png` as `image/png`; the app itself and browser favicon remain self-contained in the HTML. Do not edit generated `dist/` files. App version is injected as `__APP_VERSION__` from `VERSION`, then git tags, then the package version, falling back to `dev`.
 
 ## API Contracts & State
 

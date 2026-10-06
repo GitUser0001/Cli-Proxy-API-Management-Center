@@ -38,6 +38,16 @@ function getVersion(): string {
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    {
+      name: 'inline-app-favicon',
+      transformIndexHtml: {
+        order: 'pre',
+        handler(html) {
+          const favicon = fs.readFileSync(path.resolve(__dirname, 'src/assets/favicon.png'));
+          return html.replace('/src/assets/favicon.png', `data:image/png;base64,${favicon.toString('base64')}`);
+        }
+      }
+    },
     react(),
     viteSingleFile({
       removeViteModuleLoader: true
