@@ -202,7 +202,20 @@
     "cta_system_desc": "Информация о версии и центре управления.",
     "window_m": "{{minutes}} мин",
     "window_h": "{{hours}} ч",
-    "window_hm": "{{hours}} ч {{minutes}} мин"
+    "window_hm": "{{hours}} ч {{minutes}} мин",
+    "today_eyebrow": "Сегодня",
+    "today_title": "Стоимость токенов по людям",
+    "today_since": "С 00:00",
+    "today_people_total": "Всего по людям",
+    "today_people_aria": "Стоимость токенов сегодня по людям",
+    "today_requests": "{{value}} запросов",
+    "today_partial": "Неполная оценка API: у части попыток неизвестна цена модели или неполные данные токенов.",
+    "today_estimate": "Оценка стоимости API · не списание с подписки",
+    "today_apps": "Приложения и другие клиенты: {{value}}",
+    "today_details": "Вся статистика",
+    "today_unavailable": "Сегодняшняя статистика недоступна.",
+    "today_loading": "Загрузка статистики за сегодня…",
+    "today_retry": "Повторить"
   },
   "basic_settings": {
     "debug_enable": "Включить режим отладки",

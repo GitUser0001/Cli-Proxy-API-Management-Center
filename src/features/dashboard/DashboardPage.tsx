@@ -13,6 +13,8 @@ import { useAuthStore } from '@/stores';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { formatCompactNumber, formatDateValue, formatPercent } from '@/utils/format';
 import { useDashboardOverview } from './hooks/useDashboardOverview';
+import { useTodayUsage } from './hooks/useTodayUsage';
+import { TodaySpend } from './components/TodaySpend';
 import { LiveWire } from './components/LiveWire';
 import { Meter } from './components/Meter';
 import { Sparkline } from './components/Sparkline';
@@ -43,7 +45,10 @@ export function DashboardPage() {
   const { connectionStatus, connected, config, counts, traffic, providers, credentials, refresh } =
     useDashboardOverview();
 
-  useHeaderRefresh(refresh, connected);
+  const today = useTodayUsage();
+  useHeaderRefresh(async () => {
+    await Promise.allSettled([refresh(), today.refresh()]);
+  }, connected);
 
   /* Hero 与静态网格走分组级联；异步内容区（图表/供应商）保持整块 reveal */
   const heroRef = useRevealGroup<HTMLElement>();
@@ -229,86 +234,98 @@ export function DashboardPage() {
       </div>
 
       {/* ---------- Hero ---------- */}
-      <section className={styles.hero} ref={heroRef}>
-        <div className={styles.heroCopy}>
-          <h1 className={styles.heroTitle} data-reveal>
-            {t(`dashboard.${verdict.key}`)}
-            <span
-              className={`${styles.heroPeriod} ${heroAlive ? styles.heroPeriodLive : ''}`}
-              style={{ color: verdict.accent }}
-            >
-              {t('dashboard.hero_period')}
-            </span>
-          </h1>
-          <p className={styles.heroMeta} data-reveal>
-            {heroMetaLine}
-          </p>
-          <div className={styles.heroActions} data-reveal>
-            <Link to="/ai-providers" className={styles.primaryAction}>
-              {t('dashboard.cta_manage_providers')}
-            </Link>
-            <Link to="/logs" className={styles.ghostAction}>
-              {t('dashboard.cta_inspect_logs')}{' '}
-              <span className={styles.linkArrow} aria-hidden="true">
-                →
+      <div className={styles.topOverview}>
+        <section className={styles.hero} ref={heroRef}>
+          <div className={styles.heroCopy}>
+            <h1 className={styles.heroTitle} data-reveal>
+              {t(`dashboard.${verdict.key}`)}
+              <span
+                className={`${styles.heroPeriod} ${heroAlive ? styles.heroPeriodLive : ''}`}
+                style={{ color: verdict.accent }}
+              >
+                {t('dashboard.hero_period')}
               </span>
-            </Link>
+            </h1>
+            <p className={styles.heroMeta} data-reveal>
+              {heroMetaLine}
+            </p>
+            <div className={styles.heroActions} data-reveal>
+              <Link to="/ai-providers" className={styles.primaryAction}>
+                {t('dashboard.cta_manage_providers')}
+              </Link>
+              <Link to="/logs" className={styles.ghostAction}>
+                {t('dashboard.cta_inspect_logs')}{' '}
+                <span className={styles.linkArrow} aria-hidden="true">
+                  →
+                </span>
+              </Link>
+            </div>
           </div>
-        </div>
 
-        <div className={styles.heroPanel} data-reveal="scale">
-          <div className={styles.heroPanelTop}>
-            <span className={styles.heroPanelLabel}>{t('dashboard.hero_requests_label')}</span>
-            {connected && (
-              <span className={styles.liveBadge}>
-                <i className={styles.liveDot} aria-hidden="true" />
-                {t('dashboard.hero_live')}
-              </span>
-            )}
-          </div>
-          <strong className={styles.heroFigure}>
-            {connected ? formatHeadline(animatedTotal) : DASH}
-          </strong>
-          <span className={styles.heroPanelMeta}>
-            {t('dashboard.hero_window_meta', { window: windowLabel })}
-          </span>
-          {traffic.total > 0 && (
-            <div className={styles.ratioBar} aria-hidden="true">
-              {traffic.totalSuccess > 0 && (
-                <span
-                  className={`${styles.ratioSegment} ${styles.splitSuccess}`}
-                  style={{ flexGrow: traffic.totalSuccess }}
-                />
-              )}
-              {traffic.totalFailure > 0 && (
-                <span
-                  className={`${styles.ratioSegment} ${styles.splitFailure}`}
-                  style={{ flexGrow: traffic.totalFailure }}
-                />
+          <div className={styles.heroPanel} data-reveal="scale">
+            <div className={styles.heroPanelTop}>
+              <span className={styles.heroPanelLabel}>{t('dashboard.hero_requests_label')}</span>
+              {connected && (
+                <span className={styles.liveBadge}>
+                  <i className={styles.liveDot} aria-hidden="true" />
+                  {t('dashboard.hero_live')}
+                </span>
               )}
             </div>
-          )}
-          <div className={styles.heroSplit}>
-            <span className={styles.heroSplitItem}>
-              <i className={`${styles.splitSwatch} ${styles.splitSuccess}`} aria-hidden="true" />
-              {t('stats.success')}
-              <b>{traffic.totalSuccess.toLocaleString()}</b>
+            <strong className={styles.heroFigure}>
+              {connected ? formatHeadline(animatedTotal) : DASH}
+            </strong>
+            <span className={styles.heroPanelMeta}>
+              {t('dashboard.hero_window_meta', { window: windowLabel })}
             </span>
-            <span className={styles.heroSplitItem}>
-              <i className={`${styles.splitSwatch} ${styles.splitFailure}`} aria-hidden="true" />
-              {t('stats.failure')}
-              <b>{traffic.totalFailure.toLocaleString()}</b>
-            </span>
+            {traffic.total > 0 && (
+              <div className={styles.ratioBar} aria-hidden="true">
+                {traffic.totalSuccess > 0 && (
+                  <span
+                    className={`${styles.ratioSegment} ${styles.splitSuccess}`}
+                    style={{ flexGrow: traffic.totalSuccess }}
+                  />
+                )}
+                {traffic.totalFailure > 0 && (
+                  <span
+                    className={`${styles.ratioSegment} ${styles.splitFailure}`}
+                    style={{ flexGrow: traffic.totalFailure }}
+                  />
+                )}
+              </div>
+            )}
+            <div className={styles.heroSplit}>
+              <span className={styles.heroSplitItem}>
+                <i className={`${styles.splitSwatch} ${styles.splitSuccess}`} aria-hidden="true" />
+                {t('stats.success')}
+                <b>{traffic.totalSuccess.toLocaleString()}</b>
+              </span>
+              <span className={styles.heroSplitItem}>
+                <i className={`${styles.splitSwatch} ${styles.splitFailure}`} aria-hidden="true" />
+                {t('stats.failure')}
+                <b>{traffic.totalFailure.toLocaleString()}</b>
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className={styles.heroWire}>
-          <LiveWire
-            points={heroSparkPoints}
-            ariaLabel={t('dashboard.hero_spark_label', { window: windowLabel })}
-          />
-        </div>
-      </section>
+          <div className={styles.heroWire}>
+            <LiveWire
+              points={heroSparkPoints}
+              ariaLabel={t('dashboard.hero_spark_label', { window: windowLabel })}
+            />
+          </div>
+        </section>
+
+        <TodaySpend
+          data={today.data}
+          loading={today.loading}
+          error={today.error}
+          timezone={today.timezone}
+          onRetry={() => {
+            void today.refresh();
+          }}
+        />
+      </div>
 
       {/* ---------- KPI ---------- */}
       <section className={styles.statsRow} ref={statsRef} aria-label={t('dashboard.stats_aria')}>

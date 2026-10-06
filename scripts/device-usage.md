@@ -48,3 +48,34 @@ T3 reference: installed macOS Nightly 0.0.46-nightly.20261004.2648 usage screen 
 The “Who uses what” section presents one card per selected person/app using existing `client_models` records. It follows the page's rolling period and people selection. Dan's two devices remain combined. Each card shows the person's exact request total and estimated API cost, a provider mix bar with explicit labels/percentages/attempt counts, and rows for each provider/model with requests, tokens and estimated cost. Provider shares use executions (including retries), not summed distinct requests: a cross-model failover may appear in both model rows. Identical model names under different providers remain separate. Provider colors stay consistent across people and selection changes. Unknown provider/model labels are preserved; idle clients show an empty state. Older collectors without `client_models` show an unavailable message instead of attributing global model totals to a person.
 
 UI-only change; API, collector, database schema and pricing rates unchanged. Cards use a two-column desktop grid and single-column narrow layout, with local table scrolling when necessary. All four locales updated. Regression tests cover provider share denominators, overlapping model request counts, person selection, same model name across providers, Dan grouping, idle clients and legacy reports.
+
+## Dashboard calendar-day summary (ledger.13)
+
+The home page adds token API value per person below Requests handled, grouping the
+same four VM/laptop identities as Device usage. Apps/unknown clients remain a separate
+footer total. Values are standard API estimates, not subscription charges; unknown or
+partial prices retain dash/asterisk semantics. Zero activity is shown as zero only after
+a successful report. Errors/unsupported older collectors display unavailable with retry.
+
+The existing endpoint additionally accepts `days=1&period=today&timezone=<IANA name>`.
+The server computes the exact current local midnight with Python zoneinfo and returns
+`period=today`, `timezone`, `range_start` and `range_end`. This is a calendar day,
+including DST 23/25-hour days; regular Device usage requests retain rolling periods.
+Invalid periods, timezones or today with days other than 1 receive400 after normal
+management authentication. On Ubuntu26.04 install `tzdata-legacy` matching `tzdata`
+to support aliases returned by browsers, including Europe/Kiev. No DB migration,
+extra queue consumer or provider-price changes are needed.
+
+The dashboard refreshes the summary every60s while visible, on return to the tab and
+with header Refresh. Abort/generation/connection guards clear cross-session data;
+older collectors that ignore the new query cannot silently supply rolling24h figures.
+Deploy the updated existing collector with the UI and restart only cliproxyapi-usage.
+Keep the single-file HTML and optional Apple icon; preserve live DB and all credentials.
+
+Verification for ledger.13: pinned Bun1.3.14 full verify (1512 tests), 16 Python
+collector tests covering midnight/retries/DST/half-hour offsets/legacy aliases.
+Browser QA used the actual DashboardPage with a read-only production aggregate
+fixture and mocked management APIs: desktop light, 390px dark, all four idle
+people, unavailable state, and successful Retry. New panel fits within mobile
+width; existing hero decoration extends the document width slightly. No auth
+material is included in the QA fixture. Temporary harness is removed.

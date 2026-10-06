@@ -11,6 +11,13 @@
   gap: clamp(44px, 6.5vh, 76px);
 }
 
+.topOverview {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
 /* ---------- 环境层（ambient）---------- */
 
 /*

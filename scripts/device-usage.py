@@ -13,6 +13,7 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 STATE = Path(os.environ.get('USAGE_STATE', '/work/cliproxyapi-usage'))
 KEY_FILE = Path(os.environ.get('CREDENTIALS_DIRECTORY', str(STATE))) / 'management-key'
@@ -148,11 +149,20 @@ def resolve_interval(days, interval='auto'):
     return interval
 
 
-def report(c, days, registry, interval='auto', now=None):
+def report(c, days, registry, interval='auto', now=None, period='rolling', timezone='UTC'):
     interval = resolve_interval(days, interval)
     seconds = INTERVALS[interval]
     now = now or dt.datetime.now(dt.timezone.utc)
-    since = (now - dt.timedelta(days=days)).isoformat(timespec='microseconds')
+    if period == 'today':
+        if days != 1:
+            raise ValueError('today requires days=1')
+        local = now.astimezone(ZoneInfo(timezone))
+        start = local.replace(hour=0, minute=0, second=0, microsecond=0)
+        since = start.astimezone(dt.timezone.utc).isoformat(timespec='microseconds')
+    elif period == 'rolling':
+        since = (now - dt.timedelta(days=days)).isoformat(timespec='microseconds')
+    else:
+        raise ValueError('unsupported period')
     until = now.isoformat(timespec='microseconds')
     sums = ','.join(f'COALESCE(SUM({m}),0) AS {m}' for m in METRICS)
     cost = 'estimate_cost(provider,model,input,output,cache_read,cache_write,quality)'
@@ -183,7 +193,8 @@ def report(c, days, registry, interval='auto', now=None):
         FROM ranked GROUP BY bucket,client ORDER BY bucket,client''')
     collector = dict(c.execute('SELECT key,value FROM collector'))
     c.commit()
-    return dict(days=days, totals=totals, clients=clients, models=models, daily=daily,
+    return dict(days=days, period=period, timezone=timezone if period == 'today' else 'UTC',
+                totals=totals, clients=clients, models=models, daily=daily,
                 client_models=client_models, collector=collector, timeline=timeline,
                 interval=interval, bucket_seconds=seconds, range_start=since, range_end=until,
                 pricing=dict(as_of=PRICING_DATE, currency='USD', basis='standard-5m-cache'))
@@ -209,14 +220,22 @@ class Handler(BaseHTTPRequestHandler):
             if days not in (1, 7, 30, 90):
                 raise ValueError()
             interval = resolve_interval(days, params.get('interval', ['auto'])[0])
-        except ValueError:
-            self.send_json(400, {'error': 'unsupported days or interval (maximum 744 buckets)'})
+            period = params.get('period', ['rolling'])[0]
+            timezone = params.get('timezone', ['UTC'])[0]
+            if period not in ('rolling', 'today') or (period == 'today' and days != 1):
+                raise ValueError()
+            if len(timezone) > 100:
+                raise ValueError()
+            if period == 'today':
+                ZoneInfo(timezone)
+        except (ValueError, ZoneInfoNotFoundError):
+            self.send_json(400, {'error': 'unsupported days, interval, period or timezone (maximum 744 buckets)'})
             return
         try:
             registry = json.loads(REGISTRY.read_text())
             c = connect()
             try:
-                body = report(c, days, registry, interval)
+                body = report(c, days, registry, interval, period=period, timezone=timezone)
             finally:
                 c.close()
             self.send_json(200, body)

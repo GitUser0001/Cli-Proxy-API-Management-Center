@@ -137,4 +137,65 @@ class TimelineTests(unittest.TestCase):
             self.assertEqual(result['totals']['requests'], 0)
             c.close()
 
+class TodayTests(unittest.TestCase):
+    def report_at(self, now, timezone, stamps):
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'today.db')
+            registry = {hashlib.sha256(b'secret-client').hexdigest(): 'dan-macbook', 'idle': 'idle'}
+            for index, stamp in enumerate(stamps):
+                event = UsageTests().event()
+                event.update(execution_id=str(index), trace_id='same-request',
+                             timestamp=stamp, model='claude-opus-5-5')
+                u.record_batch(c, [event], registry)
+            result = u.report(c, 1, registry, now=now, period='today', timezone=timezone)
+            c.close()
+            return result
+
+    def test_local_midnight_excludes_yesterday_and_future(self):
+        import datetime as dt
+        result = self.report_at(dt.datetime(2026, 10, 6, 10, tzinfo=dt.timezone.utc),
+            'Europe/Kyiv', ['2026-10-05T20:59:59Z', '2026-10-05T21:00:00Z',
+                            '2026-10-06T09:00:00Z', '2026-10-06T11:00:00Z'])
+        self.assertEqual(result['range_start'], '2026-10-05T21:00:00.000000+00:00')
+        self.assertEqual((result['period'], result['timezone']), ('today', 'Europe/Kyiv'))
+        self.assertEqual((result['totals']['executions'], result['totals']['requests']), (2, 1))
+        self.assertAlmostEqual(result['totals']['cost_usd'], .001108)
+        self.assertEqual(sum(r['requests'] for r in result['timeline']), 1)
+        self.assertEqual(next(r for r in result['clients'] if r['client'] == 'idle')['cost_usd'], 0)
+
+    def test_fall_back_day_can_exceed_24_hours(self):
+        import datetime as dt
+        result = self.report_at(dt.datetime(2026, 10, 25, 21, 30, tzinfo=dt.timezone.utc),
+            'Europe/Kyiv', ['2026-10-24T20:59:59Z', '2026-10-24T21:00:00Z'])
+        self.assertEqual(result['range_start'], '2026-10-24T21:00:00.000000+00:00')
+        self.assertEqual(result['totals']['executions'], 1)
+
+    def test_spring_forward_and_half_hour_timezone(self):
+        import datetime as dt
+        for timezone, now, start in [
+            ('Europe/Kyiv', dt.datetime(2026, 3, 29, 20, 30, tzinfo=dt.timezone.utc),
+             '2026-03-28T22:00:00.000000+00:00'),
+            ('Asia/Kolkata', dt.datetime(2026, 10, 6, 10, tzinfo=dt.timezone.utc),
+             '2026-10-05T18:30:00.000000+00:00'),
+        ]:
+            result = self.report_at(now, timezone, [])
+            self.assertEqual(result['range_start'], start)
+            self.assertEqual(result['totals']['executions'], 0)
+
+    def test_browser_legacy_timezone_name(self):
+        import datetime as dt
+        result = self.report_at(dt.datetime(2026, 10, 6, 10, tzinfo=dt.timezone.utc),
+                                'Europe/Kiev', [])
+        self.assertEqual(result['range_start'], '2026-10-05T21:00:00.000000+00:00')
+        self.assertEqual(result['timezone'], 'Europe/Kiev')
+
+    def test_invalid_today_options(self):
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'today.db')
+            for days, period, timezone in [(7, 'today', 'UTC'), (1, 'yesterday', 'UTC'),
+                                            (1, 'today', 'Invalid/Zone')]:
+                with self.assertRaises((ValueError, u.ZoneInfoNotFoundError)):
+                    u.report(c, days, {}, period=period, timezone=timezone)
+            c.close()
+
 if __name__=='__main__':unittest.main()

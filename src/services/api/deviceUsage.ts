@@ -17,6 +17,8 @@ export interface UsageMetrics {
 }
 export interface DeviceUsage {
   days: number;
+  period?: 'rolling' | 'today';
+  timezone?: string;
   pricing?: { as_of: string; currency: string; basis: string };
   totals: UsageMetrics;
   clients: (UsageMetrics & { client: string })[];
@@ -33,4 +35,9 @@ export interface DeviceUsage {
 export const deviceUsageApi = {
   get: (days: number, signal?: AbortSignal, interval = 'auto') =>
     apiClient.get<DeviceUsage>('/device-usage', { params: { days, interval }, signal }),
+  getToday: (timezone: string, signal?: AbortSignal) =>
+    apiClient.get<DeviceUsage>('/device-usage', {
+      params: { days: 1, period: 'today', timezone },
+      signal,
+    }),
 };

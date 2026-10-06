@@ -48,6 +48,8 @@ const people: Readonly<Record<string, string>> = {
   'laptop-dplokhuta': 'Dima',
 };
 
+export const personNames = ['Dan', 'Denis', 'Hlib', 'Dima'] as const;
+
 export function groupUsageByPerson(data: DeviceUsage): DeviceUsage {
   const name = (client: string) =>
     Object.prototype.hasOwnProperty.call(people, client) ? people[client] : client;

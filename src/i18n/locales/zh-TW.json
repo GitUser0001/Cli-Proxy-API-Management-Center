@@ -203,7 +203,20 @@
     "cta_system_desc": "版本詳情與管理中心資訊。",
     "window_m": "{{minutes}} 分鐘",
     "window_h": "{{hours}} 小時",
-    "window_hm": "{{hours}} 小時 {{minutes}} 分"
+    "window_hm": "{{hours}} 小時 {{minutes}} 分",
+    "today_eyebrow": "今日",
+    "today_title": "每人的 Token 價值",
+    "today_since": "從 00:00 起",
+    "today_people_total": "人員合計",
+    "today_people_aria": "今日每人的 Token 價值",
+    "today_requests": "{{value}} 次請求",
+    "today_partial": "API 估算不完整：部分嘗試的模型價格未知或 Token 資料不完整。",
+    "today_estimate": "API 估算價值 · 非訂閱扣費",
+    "today_apps": "應用和其他用戶端：{{value}}",
+    "today_details": "完整統計",
+    "today_unavailable": "今日統計暫不可用。",
+    "today_loading": "正在載入今日統計…",
+    "today_retry": "重試"
   },
   "basic_settings": {
     "debug_enable": "啟用除錯模式",

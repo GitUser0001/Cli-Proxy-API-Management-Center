@@ -203,7 +203,20 @@
     "cta_system_desc": "Version details and management center info.",
     "window_m": "{{minutes}}m",
     "window_h": "{{hours}}h",
-    "window_hm": "{{hours}}h {{minutes}}m"
+    "window_hm": "{{hours}}h {{minutes}}m",
+    "today_eyebrow": "Today",
+    "today_title": "Token value by person",
+    "today_since": "Since 00:00",
+    "today_people_total": "People total",
+    "today_people_aria": "Today's token value by person",
+    "today_requests": "{{value}} requests",
+    "today_partial": "Partial API estimate. Some attempts have no model price or complete token accounting.",
+    "today_estimate": "Estimated API value · not subscription charges",
+    "today_apps": "Apps & other clients: {{value}}",
+    "today_details": "Full usage",
+    "today_unavailable": "Today's usage is unavailable.",
+    "today_loading": "Loading today's usage…",
+    "today_retry": "Retry"
   },
   "basic_settings": {
     "debug_enable": "Enable Debug Mode",
