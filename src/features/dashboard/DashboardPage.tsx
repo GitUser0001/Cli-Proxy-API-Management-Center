@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -13,7 +13,9 @@ import { useAuthStore } from '@/stores';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { formatCompactNumber, formatDateValue, formatPercent } from '@/utils/format';
 import { useDashboardOverview } from './hooks/useDashboardOverview';
-import { useTodayUsage } from './hooks/useTodayUsage';
+import { useDashboardUsage } from './hooks/useDashboardUsage';
+import type { CalendarGranularity } from '@/services/api/deviceUsage';
+import { CalendarUsage } from './components/CalendarUsage';
 import { TodaySpend } from './components/TodaySpend';
 import { LiveWire } from './components/LiveWire';
 import { Meter } from './components/Meter';
@@ -45,9 +47,11 @@ export function DashboardPage() {
   const { connectionStatus, connected, config, counts, traffic, providers, credentials, refresh } =
     useDashboardOverview();
 
-  const today = useTodayUsage();
+  const today = useDashboardUsage();
+  const [granularity, setGranularity] = useState<CalendarGranularity>('day');
+  const calendar = useDashboardUsage(granularity);
   useHeaderRefresh(async () => {
-    await Promise.allSettled([refresh(), today.refresh()]);
+    await Promise.allSettled([refresh(), today.refresh(), calendar.refresh()]);
   }, connected);
 
   /* Hero 与静态网格走分组级联；异步内容区（图表/供应商）保持整块 reveal */
@@ -354,6 +358,18 @@ export function DashboardPage() {
           </article>
         ))}
       </section>
+
+      <CalendarUsage
+        data={calendar.data}
+        loading={calendar.loading}
+        error={calendar.error}
+        timezone={calendar.timezone}
+        granularity={granularity}
+        onGranularity={setGranularity}
+        onRetry={() => {
+          void calendar.refresh();
+        }}
+      />
 
       {/* ---------- Traffic ---------- */}
       <section className={styles.section} ref={trafficRef}>

@@ -79,3 +79,33 @@ fixture and mocked management APIs: desktop light, 390px dark, all four idle
 people, unavailable state, and successful Retry. New panel fits within mobile
 width; existing hero decoration extends the document width slightly. No auth
 material is included in the QA fixture. Temporary harness is removed.
+
+### Dashboard calendar history (ledger.14)
+
+The same endpoint supports `days=90&period=calendar&timezone=Europe/Kiev&granularity=day&count=7`.
+The legacy `days` value remains valid but calendar/count defines the actual range.
+Granularity is day/week/month, maximum count 30/12/12 respectively. Weeks begin
+Monday; months begin on the first. Dashboard defaults are 7 days, 8 weeks, 6 months.
+`series` contains one local-calendar bucket per period, with `period_start`,
+`available`, `partial`, `is_current` and the existing metrics/price coverage.
+The first observed collector/event timestamp is `history_start`; earlier buckets
+are unavailable, rather than reported as zero. Current and partly recorded first
+periods are marked partial. Requests deduplicate traces within each calendar
+bucket, so a trace spanning periods may count in both; execution/tokens/cost sums
+reconcile across all buckets. Existing UTC daily/timeline and rolling/today modes
+remain unchanged. No new table, pricing changes or queue consumer.
+
+Calendar UI uses connection-safe refresh60s/visibility/header and aborts old range
+responses. Local axes and a details panel/table expose requests, tokens, failed
+attempts and estimated USD. The bar metric is selectable. Unknown prices/history
+are shown as a dash, not zero; cost coverage flags are retained. Keyboard arrows,
+Home/End and touch/click select a column. All four locales updated.
+
+Ledger.14 verification: Bun1.3.14 full verify1514 tests, lint, TypeScript/Vite build;
+Python20 collector tests covering day/week/month boundaries, Monday/year changes,
+DST, half-hour offsets, history availability, retry deduplication and cost sums.
+Browser actual DashboardPage with safe production report fixtures/mock APIs:
+days/weeks/months, dollar/request/token selectors, data table, keyboard arrow
+selection, 390px dark, unavailable+Retry and true-zero periods. Temporary QA files
+removed. Preview shows the actual CalendarUsage component with recorded aggregate
+values at QA time; no credentials or provider identities in fixtures/screenshots.

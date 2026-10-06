@@ -1,5 +1,7 @@
 import { apiClient } from './client';
 
+export type CalendarGranularity = 'day' | 'week' | 'month';
+
 export interface UsageMetrics {
   executions: number;
   requests: number;
@@ -17,7 +19,16 @@ export interface UsageMetrics {
 }
 export interface DeviceUsage {
   days: number;
-  period?: 'rolling' | 'today';
+  period?: 'rolling' | 'today' | 'calendar';
+  granularity?: CalendarGranularity;
+  calendar_count?: number;
+  history_start?: string | null;
+  series?: (UsageMetrics & {
+    period_start: string;
+    available: boolean;
+    is_current: boolean;
+    partial: boolean;
+  })[];
   timezone?: string;
   pricing?: { as_of: string; currency: string; basis: string };
   totals: UsageMetrics;
@@ -35,6 +46,17 @@ export interface DeviceUsage {
 export const deviceUsageApi = {
   get: (days: number, signal?: AbortSignal, interval = 'auto') =>
     apiClient.get<DeviceUsage>('/device-usage', { params: { days, interval }, signal }),
+  getCalendar: (granularity: CalendarGranularity, timezone: string, signal?: AbortSignal) =>
+    apiClient.get<DeviceUsage>('/device-usage', {
+      params: {
+        days: 90,
+        period: 'calendar',
+        granularity,
+        count: { day: 7, week: 8, month: 6 }[granularity],
+        timezone,
+      },
+      signal,
+    }),
   getToday: (timezone: string, signal?: AbortSignal) =>
     apiClient.get<DeviceUsage>('/device-usage', {
       params: { days: 1, period: 'today', timezone },

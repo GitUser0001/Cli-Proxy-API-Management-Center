@@ -198,4 +198,63 @@ class TodayTests(unittest.TestCase):
                     u.report(c, days, {}, period=period, timezone=timezone)
             c.close()
 
+class CalendarTests(unittest.TestCase):
+    def report_at(self, now, timezone, granularity, count, stamps):
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'calendar.db')
+            for index, stamp in enumerate(stamps):
+                event = UsageTests().event()
+                event.update(execution_id=str(index), trace_id='same', timestamp=stamp,
+                             model='claude-opus-5-5')
+                u.record_batch(c, [event], {})
+            result = u.report(c, 90, {}, now=now, period='calendar', timezone=timezone,
+                              granularity=granularity, calendar_count=count)
+            c.close()
+            return result
+
+    def test_local_days_and_no_history_are_not_false_zero(self):
+        import datetime as dt
+        result = self.report_at(dt.datetime(2026,10,6,10,tzinfo=dt.timezone.utc),
+            'Europe/Kyiv', 'day', 7, ['2026-10-04T20:59:59Z','2026-10-04T21:00:00Z',
+                                   '2026-10-05T09:00:00Z','2026-10-05T21:00:00Z',
+                                   '2026-10-06T11:00:00Z'])
+        self.assertEqual(result['range_start'], '2026-09-29T21:00:00.000000+00:00')
+        self.assertEqual([r['executions'] for r in result['series']], [0,0,0,0,1,2,1])
+        self.assertEqual([r['available'] for r in result['series']], [False]*4+[True]*3)
+        self.assertTrue(result['series'][4]['partial'])
+        self.assertTrue(result['series'][-1]['is_current'])
+        self.assertAlmostEqual(sum(r['cost_usd'] for r in result['series']), result['totals']['cost_usd'])
+        # A trace is counted once within each calendar period, even if it crosses midnight.
+        self.assertEqual([r['requests'] for r in result['series'][-3:]], [1,1,1])
+
+    def test_week_monday_and_month_year_boundary(self):
+        import datetime as dt
+        now=dt.datetime(2026,1,6,10,tzinfo=dt.timezone.utc)
+        stamps=['2025-12-28T22:00:00Z','2026-01-04T22:00:00Z','2026-01-06T09:00:00Z']
+        weeks=self.report_at(now,'Europe/Kyiv','week',2,stamps)
+        self.assertEqual([r['period_start'] for r in weeks['series']],['2025-12-29','2026-01-05'])
+        self.assertEqual([r['executions'] for r in weeks['series']],[1,2])
+        months=self.report_at(now,'Europe/Kyiv','month',2,stamps)
+        self.assertEqual([r['period_start'] for r in months['series']],['2025-12-01','2026-01-01'])
+        self.assertEqual([r['executions'] for r in months['series']],[1,2])
+        self.assertEqual(u.shift_period(dt.date(2024,3,1),'month',-1),dt.date(2024,2,1))
+
+    def test_dst_day_boundaries_and_half_hour_zone(self):
+        import datetime as dt
+        result=self.report_at(dt.datetime(2026,3,30,10,tzinfo=dt.timezone.utc),
+            'Europe/Kyiv','day',2,['2026-03-28T22:00:00Z','2026-03-29T20:59:59Z','2026-03-29T21:00:00Z'])
+        self.assertEqual([r['executions'] for r in result['series']],[2,1])
+        result=self.report_at(dt.datetime(2026,10,6,10,tzinfo=dt.timezone.utc),
+            'Asia/Kolkata','day',2,['2026-10-05T18:29:59Z','2026-10-05T18:30:00Z'])
+        self.assertEqual([r['executions'] for r in result['series']],[1,1])
+
+    def test_empty_and_bounded_calendar(self):
+        import datetime as dt
+        now=dt.datetime(2026,10,6,10,tzinfo=dt.timezone.utc)
+        result=self.report_at(now,'UTC','month',6,[])
+        self.assertEqual(len(result['series']),6)
+        self.assertTrue(all(not r['available'] for r in result['series']))
+        for granularity,count in [('year',1),('day',31),('week',13),('month',0),('month',13)]:
+            with self.assertRaises(ValueError):u.calendar_starts(now,'UTC',granularity,count)
+
 if __name__=='__main__':unittest.main()

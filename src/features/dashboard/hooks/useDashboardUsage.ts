@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores';
 import { apiClient } from '@/services/api/client';
-import { deviceUsageApi, type DeviceUsage } from '@/services/api/deviceUsage';
+import {
+  deviceUsageApi,
+  type CalendarGranularity,
+  type DeviceUsage,
+} from '@/services/api/deviceUsage';
 
-export function useTodayUsage() {
+export function useDashboardUsage(granularity?: CalendarGranularity) {
   const apiBase = useAuthStore((s) => s.apiBase);
   const managementKey = useAuthStore((s) => s.managementKey);
   const status = useAuthStore((s) => s.connectionStatus);
@@ -16,6 +20,7 @@ export function useTodayUsage() {
     base: string;
     key: string;
     revision: number;
+    granularity?: CalendarGranularity;
   } | null>(null);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
@@ -32,11 +37,18 @@ export function useTodayUsage() {
       id === generation.current &&
       revision === apiClient.getConnectionRevision();
     try {
-      const result = await deviceUsageApi.getToday(timezone, abort.signal);
+      const result = granularity
+        ? await deviceUsageApi.getCalendar(granularity, timezone, abort.signal)
+        : await deviceUsageApi.getToday(timezone, abort.signal);
       // Older collectors ignore unknown query parameters: never label a rolling day as today.
-      if (result.period !== 'today' || result.timezone !== timezone) throw new Error('unsupported');
+      if (
+        result.period !== (granularity ? 'calendar' : 'today') ||
+        result.timezone !== timezone ||
+        (granularity && (result.granularity !== granularity || !result.series))
+      )
+        throw new Error('unsupported');
       if (current()) {
-        setLoadedScope({ base: apiBase, key: managementKey, revision });
+        setLoadedScope({ base: apiBase, key: managementKey, revision, granularity });
         setData(result);
         setError(false);
       }
@@ -48,7 +60,7 @@ export function useTodayUsage() {
     } finally {
       if (current()) setLoading(false);
     }
-  }, [apiBase, managementKey, status, timezone]);
+  }, [apiBase, managementKey, status, timezone, granularity]);
 
   useEffect(() => {
     setData(null);
@@ -77,6 +89,7 @@ export function useTodayUsage() {
     status === 'connected' &&
     loadedScope?.base === apiBase &&
     loadedScope?.key === managementKey &&
+    loadedScope?.granularity === granularity &&
     loadedScope?.revision === apiClient.getConnectionRevision()
       ? data
       : null;

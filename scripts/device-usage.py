@@ -149,8 +149,34 @@ def resolve_interval(days, interval='auto'):
     return interval
 
 
-def report(c, days, registry, interval='auto', now=None, period='rolling', timezone='UTC'):
-    interval = resolve_interval(days, interval)
+def period_date(date, granularity):
+    if granularity == 'day':
+        return date
+    if granularity == 'week':
+        return date - dt.timedelta(days=date.weekday())
+    if granularity == 'month':
+        return date.replace(day=1)
+    raise ValueError('unsupported calendar granularity')
+
+
+def shift_period(date, granularity, amount):
+    if granularity == 'month':
+        months = date.year * 12 + date.month - 1 + amount
+        return dt.date(months // 12, months % 12 + 1, 1)
+    return date + dt.timedelta(days=amount * (7 if granularity == 'week' else 1))
+
+
+def calendar_starts(now, timezone, granularity, count):
+    limit = {'day': 30, 'week': 12, 'month': 12}.get(granularity, 0)
+    if not 1 <= count <= limit:
+        raise ValueError('unsupported calendar count')
+    last = period_date(now.astimezone(ZoneInfo(timezone)).date(), granularity)
+    return [shift_period(last, granularity, i - count + 1) for i in range(count)]
+
+
+def report(c, days, registry, interval='auto', now=None, period='rolling', timezone='UTC',
+           granularity='day', calendar_count=7):
+    interval = resolve_interval(days, '1d' if period == 'calendar' else interval)
     seconds = INTERVALS[interval]
     now = now or dt.datetime.now(dt.timezone.utc)
     if period == 'today':
@@ -159,6 +185,12 @@ def report(c, days, registry, interval='auto', now=None, period='rolling', timez
         local = now.astimezone(ZoneInfo(timezone))
         start = local.replace(hour=0, minute=0, second=0, microsecond=0)
         since = start.astimezone(dt.timezone.utc).isoformat(timespec='microseconds')
+    elif period == 'calendar':
+        starts = calendar_starts(now, timezone, granularity, calendar_count)
+        zone = ZoneInfo(timezone)
+        since = dt.datetime.combine(starts[0], dt.time.min, zone).astimezone(dt.timezone.utc).isoformat(timespec='microseconds')
+        c.create_function('usage_period', 1, lambda stamp: period_date(
+            dt.datetime.fromisoformat(stamp).astimezone(zone).date(), granularity).isoformat(), deterministic=True)
     elif period == 'rolling':
         since = (now - dt.timedelta(days=days)).isoformat(timespec='microseconds')
     else:
@@ -192,12 +224,29 @@ def report(c, days, registry, interval='auto', now=None, period='rolling', timez
         SUM(quality != 'complete') AS incomplete,{costs}
         FROM ranked GROUP BY bucket,client ORDER BY bucket,client''')
     collector = dict(c.execute('SELECT key,value FROM collector'))
+    calendar = {}
+    if period == 'calendar':
+        recorded = c.execute('SELECT MIN(ts) FROM events').fetchone()[0]
+        history_start = min(filter(None, [recorded, collector.get('started_at')]), default=None)
+        history = dt.datetime.fromisoformat(history_start) if history_start else None
+        grouped = {r['period_start']: r for r in query(
+            f'SELECT usage_period(ts) AS period_start,{aggregate} FROM events WHERE {window} GROUP BY period_start ORDER BY period_start')}
+        series = []
+        for index, date in enumerate(starts):
+            start = dt.datetime.combine(date, dt.time.min, zone).astimezone(dt.timezone.utc)
+            end = min(now, dt.datetime.combine(shift_period(date, granularity, 1), dt.time.min, zone).astimezone(dt.timezone.utc))
+            series.append(dict(grouped.get(date.isoformat(), empty), period_start=date.isoformat(),
+                               available=history is not None and history < end,
+                               is_current=index == len(starts)-1,
+                               partial=index == len(starts)-1 or (history is not None and history > start)))
+        calendar = dict(series=series, granularity=granularity, calendar_count=calendar_count,
+                        history_start=history_start)
     c.commit()
-    return dict(days=days, period=period, timezone=timezone if period == 'today' else 'UTC',
+    return dict(days=days, period=period, timezone=timezone if period in ('today', 'calendar') else 'UTC',
                 totals=totals, clients=clients, models=models, daily=daily,
                 client_models=client_models, collector=collector, timeline=timeline,
                 interval=interval, bucket_seconds=seconds, range_start=since, range_end=until,
-                pricing=dict(as_of=PRICING_DATE, currency='USD', basis='standard-5m-cache'))
+                pricing=dict(as_of=PRICING_DATE, currency='USD', basis='standard-5m-cache'), **calendar)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -222,12 +271,16 @@ class Handler(BaseHTTPRequestHandler):
             interval = resolve_interval(days, params.get('interval', ['auto'])[0])
             period = params.get('period', ['rolling'])[0]
             timezone = params.get('timezone', ['UTC'])[0]
-            if period not in ('rolling', 'today') or (period == 'today' and days != 1):
+            granularity = params.get('granularity', ['day'])[0]
+            calendar_count = int(params.get('count', ['7'])[0])
+            if period not in ('rolling', 'today', 'calendar') or (period == 'today' and days != 1):
                 raise ValueError()
             if len(timezone) > 100:
                 raise ValueError()
-            if period == 'today':
+            if period in ('today', 'calendar'):
                 ZoneInfo(timezone)
+            if period == 'calendar':
+                calendar_starts(dt.datetime.now(dt.timezone.utc), timezone, granularity, calendar_count)
         except (ValueError, ZoneInfoNotFoundError):
             self.send_json(400, {'error': 'unsupported days, interval, period or timezone (maximum 744 buckets)'})
             return
@@ -235,7 +288,7 @@ class Handler(BaseHTTPRequestHandler):
             registry = json.loads(REGISTRY.read_text())
             c = connect()
             try:
-                body = report(c, days, registry, interval, period=period, timezone=timezone)
+                body = report(c, days, registry, interval, period=period, timezone=timezone, granularity=granularity, calendar_count=calendar_count)
             finally:
                 c.close()
             self.send_json(200, body)
