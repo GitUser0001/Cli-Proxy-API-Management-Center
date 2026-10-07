@@ -110,7 +110,9 @@ export function PersonModelBreakdown({
                             <td>{number(row.requests)}</td>
                             <td title={number(row.total)}>{compact(row.total)}</td>
                             {priced && (
-                              <td title={costTitle(row, t)}>{formatCost(row, i18n.language)}</td>
+                              <td title={costTitle(row, t)}>
+                                {formatCost(row, i18n.language, true)}
+                              </td>
                             )}
                           </tr>
                         ))}

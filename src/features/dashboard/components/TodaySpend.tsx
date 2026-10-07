@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { DeviceUsage, UsageMetrics } from '@/services/api/deviceUsage';
 import { colorFor } from '@/features/deviceUsage/timeline';
-import { costTitle, formatCost } from '@/features/deviceUsage/cost';
+import { costTitle, costValue, formatCost } from '@/features/deviceUsage/cost';
 import { todaySummary } from '../todayUsage';
 import styles from './TodaySpend.module.scss';
 
@@ -76,7 +76,7 @@ export function TodaySpend({ data, loading, error, timezone, onRetry }: Props) {
                 <span
                   style={{
                     width: `${
-                      summary.maxCost > 0 ? ((person.cost_usd ?? 0) / summary.maxCost) * 100 : 0
+                      summary.maxCost > 0 ? ((costValue(person) ?? 0) / summary.maxCost) * 100 : 0
                     }%`,
                   }}
                 />

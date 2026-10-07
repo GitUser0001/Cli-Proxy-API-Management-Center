@@ -2362,9 +2362,9 @@
     "breakdown_attempts": "Attempts: {{value}}",
     "breakdown_note": "Provider shares count upstream attempts, including retries. A request that switches models can appear in multiple model rows; model request counts may exceed the person’s total.",
     "breakdown_unavailable": "Per-person model data is unavailable from this collector.",
-    "cost_image_short": "Includes image estimates as ranges",
-    "cost_image_range": "Image input text/image split is unavailable. The range covers that mix at Standard rates with recorded cache reads; unreported cache discounts and partial-image fees are excluded.",
-    "cost_image_chart": "Image estimates use ranges; bar heights and shares use the lower end",
-    "cost_image_details": "GPT Image rates verified {{date}}: text input $5 / cached $1.25, image input $8 / cached $2, image output $30 per 1M tokens. Without input modality detail, show the text-to-image price range. Unreported cache discounts and partial-image fees are excluded. The undocumented gpt-image-2.5 label remains unpriced."
+    "cost_image_short": "Includes image estimates at the upper end",
+    "cost_image_range": "Image input text/image split is unavailable. Totals use the upper estimate; model tables retain the Standard-rate range with recorded cache reads. Unreported cache discounts and partial-image fees are excluded.",
+    "cost_image_chart": "Image estimates, bar heights and shares use the upper end; model tables show ranges",
+    "cost_image_details": "GPT Image rates verified {{date}}: text input $5 / cached $1.25, image input $8 / cached $2, image output $30 per 1M tokens. Without input modality detail, totals use the upper estimate and model tables show the text-to-image price range. Unreported cache discounts and partial-image fees are excluded. The undocumented gpt-image-2.5 label remains unpriced."
   }
 }

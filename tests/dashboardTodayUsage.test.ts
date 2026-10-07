@@ -29,6 +29,20 @@ const fixture = (clients: DeviceUsage['clients']): DeviceUsage => ({
 });
 
 describe('dashboard today summary', () => {
+  test('sorts people and scales bars by the upper estimate while retaining both totals', () => {
+    const result = todaySummary(
+      fixture([
+        { ...metrics(2, 1), cost_usd_max: 4, client: 'dan-macbook' },
+        { ...metrics(3, 1), cost_usd_max: 3, client: 'devbox-dplokhuta' },
+        { ...metrics(1, 1), cost_usd_max: 2, client: 'hermes-work-1' },
+      ])
+    );
+    expect(result.people.map((row) => row.name)).toEqual(['Dan', 'Dima', 'Denis', 'Hlib']);
+    expect(result.maxCost).toBe(4);
+    expect(result.total.cost_usd).toBe(5);
+    expect(result.total.cost_usd_max).toBe(7);
+    expect(result.apps.cost_usd_max).toBe(2);
+  });
   test('combines devices and keeps app spend out of the people total', () => {
     const result = todaySummary(
       fixture([

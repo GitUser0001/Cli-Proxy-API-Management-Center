@@ -40,6 +40,21 @@ test('calendar dollar scale keeps sub-cent usage visible', () => {
   expect(calendarScale(79, 'requests')).toBe(80);
 });
 
+test('calendar bars and people shares use upper image estimates', () => {
+  const image = { ...row, cost_usd: 2, cost_usd_max: 4, image_estimated_executions: 1 };
+  expect(calendarValue(image, 'cost')).toBe(4);
+  expect(calendarValue({ ...image, unpriced_executions: 2 }, 'cost')).toBeNull();
+  expect(calendarValue({ ...image, available: false }, 'cost')).toBeNull();
+  const people = calendarPeople({
+    ...image,
+    clients: [
+      { ...image, client: 'dan-macbook' },
+      { ...image, cost_usd: 3, cost_usd_max: 3, client: 'devbox-dshcherbak' },
+    ],
+  });
+  expect(calendarValue(people[0], 'cost')).toBe(7);
+});
+
 test('calendar breakdown groups laptop and VM people and keeps apps separate', () => {
   const bucket = {
     ...row,

@@ -1,6 +1,7 @@
 import type { DeviceUsage } from '@/services/api/deviceUsage';
 import { axisMax } from './utils';
 import { personForClient, personNames, sumMetrics } from '@/features/deviceUsage/timeline';
+import { costValue } from '@/features/deviceUsage/cost';
 
 export type CalendarMetric = 'cost' | 'requests' | 'tokens';
 export type CalendarBucket = NonNullable<DeviceUsage['series']>[number];
@@ -8,16 +9,19 @@ export type CalendarBucket = NonNullable<DeviceUsage['series']>[number];
 export function calendarValue(
   row: Pick<
     CalendarBucket,
-    'available' | 'cost_usd' | 'executions' | 'unpriced_executions' | 'requests' | 'total'
+    | 'available'
+    | 'cost_usd'
+    | 'cost_usd_max'
+    | 'executions'
+    | 'unpriced_executions'
+    | 'requests'
+    | 'total'
   >,
   metric: CalendarMetric
 ): number | null {
   if (!row.available) return null;
   if (metric === 'cost') {
-    return row.cost_usd === undefined ||
-      (row.executions > 0 && row.unpriced_executions === row.executions)
-      ? null
-      : row.cost_usd;
+    return costValue(row) ?? null;
   }
   return metric === 'requests' ? row.requests : row.total;
 }

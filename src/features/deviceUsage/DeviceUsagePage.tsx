@@ -106,7 +106,7 @@ export function DeviceUsagePage() {
     'total',
     'errors',
   ] as const;
-  const table = (rows: (UsageMetrics & { label: string })[], label: string) => (
+  const table = (rows: (UsageMetrics & { label: string })[], label: string, showRange = false) => (
     <div className={styles.scroll}>
       <table>
         <thead>
@@ -129,7 +129,9 @@ export function DeviceUsagePage() {
           {rows.map((row) => (
             <tr key={row.label}>
               <th scope="row">{row.label}</th>
-              {hasPricing && <td title={title(row)}>{cost(row)}</td>}
+              {hasPricing && (
+                <td title={title(row)}>{formatCost(row, i18n.language, showRange)}</td>
+              )}
               {columns.map((key) => (
                 <td key={key}>{number(row[key])}</td>
               ))}
@@ -295,7 +297,8 @@ export function DeviceUsagePage() {
           <Card title={t('device_usage.models')}>
             {table(
               modelRows(data, selected).map((r) => ({ ...r, label: `${r.provider} / ${r.model}` })),
-              t('device_usage.model')
+              t('device_usage.model'),
+              true
             )}
           </Card>
           <p className={styles.note}>

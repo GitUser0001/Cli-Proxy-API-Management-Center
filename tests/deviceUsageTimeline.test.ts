@@ -235,21 +235,21 @@ describe('API cost estimates', () => {
     expect(dan.cost_usd).toBeCloseTo(1.491865);
     expect(dan.cost_usd_max).toBeCloseTo(1.535272);
     expect(dan.image_estimated_executions).toBe(1);
-    expect(formatCost(dan, 'en-US')).toBe('≈$1.49–$1.54');
+    expect(formatCost(dan, 'en-US')).toBe('≈$1.54');
+    expect(formatCost(dan, 'en-US', true)).toBe('≈$1.49–$1.54');
     expect(
       formatCost(
         modelRows(grouped, ['Dan']).find((r) => r.model === 'gpt-image-2')!,
-        'en-US'
+        'en-US',
+        true
       )
     ).toBe('≈$0.49–$0.54');
     expect(modelRows(grouped, ['Denis'])).toEqual([]);
-    expect(formatCost({ ...image, unpriced_executions: 0 }, 'en-US')).toBe('≈$0.49–$0.54');
+    expect(formatCost({ ...image, unpriced_executions: 0 }, 'en-US')).toBe('≈$0.54');
     expect(formatCost({ ...image, executions: 2, unpriced_executions: 1 }, 'en-US')).toBe(
-      '≈$0.49–$0.54*'
+      '≈$0.54*'
     );
-    expect(formatCost({ ...image, cost_usd: 0.001, cost_usd_max: 0.002 }, 'en-US')).toBe(
-      '≈$0.00–$0.01'
-    );
+    expect(formatCost({ ...image, cost_usd: 0.001, cost_usd_max: 0.002 }, 'en-US')).toBe('≈$0.01');
     expect(formatCost({ ...image, cost_usd: 1.5, cost_usd_max: 1.5 }, 'en-US')).toBe('≈$1.50');
     expect(sumMetrics([]).cost_usd_max).toBe(0);
     expect(sumMetrics([metrics(1)]).cost_usd_max).toBeUndefined();

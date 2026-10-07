@@ -139,10 +139,12 @@ covers modality uncertainty at Standard rates, not every possible charge: the
 upstream does not report all image cache hits, and partial-image fees/service
 tiers are excluded. Do not label this an exact bill or a guaranteed billing bound.
 
-The shared formatter displays ranges with outward cent rounding, preserving
-partial-price asterisks. Both ends propagate through people/device aliases,
-model filters, today/team totals and calendar summaries. Monetary bars and
-shares use the lower end, explicitly explained when image ranges are present.
+The shared formatter uses the upper estimate for totals, people, today/team and
+calendar summaries. Only model tables retain ranges with outward cent rounding;
+upper-only image amounts keep the same outward upper-cent rounding. Both ends
+propagate through grouping and filtering without changing the API contract.
+Monetary bars, shares and today sorting use the unrounded upper estimate.
+Partial-price asterisks are preserved.
 Old reports without the new fields still render their original single estimate.
 DB schema, stored tokens and backend are unchanged; only the existing collector
 is restarted during deployment. No second usage consumer, raw payload logging,

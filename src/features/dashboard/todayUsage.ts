@@ -1,5 +1,6 @@
 import type { DeviceUsage } from '@/services/api/deviceUsage';
 import { groupUsageByPerson, personNames, sumMetrics } from '@/features/deviceUsage/timeline';
+import { costValue } from '@/features/deviceUsage/cost';
 
 export function todaySummary(data: DeviceUsage) {
   const grouped = groupUsageByPerson(data);
@@ -9,13 +10,13 @@ export function todaySummary(data: DeviceUsage) {
     colorIndex: index,
     initials: { Dan: 'DA', Denis: 'DE', Hlib: 'HL', Dima: 'DI' }[name],
   }));
-  people.sort((a, b) => (b.cost_usd ?? 0) - (a.cost_usd ?? 0) || a.colorIndex - b.colorIndex);
+  people.sort((a, b) => (costValue(b) ?? 0) - (costValue(a) ?? 0) || a.colorIndex - b.colorIndex);
   return {
     people,
     total: sumMetrics(people),
     apps: sumMetrics(
       grouped.clients.filter((row) => !personNames.some((name) => name === row.client))
     ),
-    maxCost: Math.max(0, ...people.map((row) => row.cost_usd ?? 0)),
+    maxCost: Math.max(0, ...people.map((row) => costValue(row) ?? 0)),
   };
 }
