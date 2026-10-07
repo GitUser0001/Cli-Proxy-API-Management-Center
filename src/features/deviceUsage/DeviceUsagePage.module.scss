@@ -479,7 +479,8 @@
 .costStat {
   strong {
     color: var(--primary-color);
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   small {
     display: block;
@@ -487,6 +488,9 @@
     font-size: 10px;
     color: var(--text-secondary);
   }
+}
+.withCost .costStat strong {
+  font-size: clamp(18px, 1.7vw, 28px);
 }
 .costDetails {
   margin-top: -10px;

@@ -27,10 +27,22 @@ export function sumMetrics(rows: UsageMetrics[]): UsageMetrics {
       result[key] += key === 'latency_ms' ? row[key] * row.executions : row[key];
     }
   }
-  const priced: Pick<UsageMetrics, 'cost_usd' | 'unpriced_executions'> = {};
+  const priced: Pick<
+    UsageMetrics,
+    'cost_usd' | 'cost_usd_max' | 'image_estimated_executions' | 'unpriced_executions'
+  > = {};
   if (rows.every((row) => row.cost_usd !== undefined && row.unpriced_executions !== undefined)) {
     priced.cost_usd = rows.reduce((sum, row) => sum + row.cost_usd!, 0);
     priced.unpriced_executions = rows.reduce((sum, row) => sum + row.unpriced_executions!, 0);
+    if (rows.every((row) => row.cost_usd_max !== undefined)) {
+      priced.cost_usd_max = rows.reduce((sum, row) => sum + row.cost_usd_max!, 0);
+    }
+    if (rows.every((row) => row.image_estimated_executions !== undefined)) {
+      priced.image_estimated_executions = rows.reduce(
+        (sum, row) => sum + row.image_estimated_executions!,
+        0
+      );
+    }
   }
   result.latency_ms = result.executions ? result.latency_ms / result.executions : 0;
   return { ...result, ...priced };

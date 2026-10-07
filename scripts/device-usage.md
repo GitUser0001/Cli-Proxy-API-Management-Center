@@ -109,3 +109,42 @@ days/weeks/months, dollar/request/token selectors, data table, keyboard arrow
 selection, 390px dark, unavailable+Retry and true-zero periods. Temporary QA files
 removed. Preview shows the actual CalendarUsage component with recorded aggregate
 values at QA time; no credentials or provider identities in fixtures/screenshots.
+
+
+## Image API-equivalent estimates (2026-10-07)
+
+The report now includes `cost_usd_max` and `image_estimated_executions` in all
+metrics groups, including calendar bucket clients. `cost_usd` is the lower end
+of the priced portion; `cost_usd_max` is its upper end. Text model estimates are
+identical at both ends. Unknown or incomplete attempts remain excluded and
+counted separately. `pricing.image_as_of` dates image rates independently.
+
+Official Standard USD per 1M tokens for GPT Image 2 and both GPT Image 2.5
+variants: text input 5 / cached 1.25; image input 8 / cached 2; image output 30.
+Sources: [OpenAI pricing](https://developers.openai.com/api/docs/pricing#image-generation-models)
+and [image generation guide](https://developers.openai.com/api/docs/guides/image-generation#cached-input-pricing).
+The official pricing Markdown exposes the complete Standard table, including
+GPT Image 2; do not use the Batch table's half-price rates. Exact supported Codex
+model identifiers: `gpt-image-2`, `gpt-image-2-2026-04-21`,
+`gpt-image-2.5-sunburst`, `gpt-image-2.5-flare`. The recorded `gpt-image-2.5` label
+is undocumented and stays unpriced, without fuzzy aliases.
+
+Backend v8.0.13 parses image tool usage but drops input text/image detail before
+exporting canonical v2 accounting. Existing SQLite history cannot restore it;
+new requests have the same limitation. For input I, recorded cache reads C and
+image output O, the modality interval is [(I-C)*5+C*1.25+O*30,
+(I-C)*8+C*2+O*30]/1M. Image cache writes are unsupported and therefore unpriced.
+Image attempts do not inherit text-model long-context premiums. The interval
+covers modality uncertainty at Standard rates, not every possible charge: the
+upstream does not report all image cache hits, and partial-image fees/service
+tiers are excluded. Do not label this an exact bill or a guaranteed billing bound.
+
+The shared formatter displays ranges with outward cent rounding, preserving
+partial-price asterisks. Both ends propagate through people/device aliases,
+model filters, today/team totals and calendar summaries. Monetary bars and
+shares use the lower end, explicitly explained when image ranges are present.
+Old reports without the new fields still render their original single estimate.
+DB schema, stored tokens and backend are unchanged; only the existing collector
+is restarted during deployment. No second usage consumer, raw payload logging,
+paid inference or OAuth operation is needed. Future finer accounting requires
+a separately validated backend change and upstream modality evidence.

@@ -2353,7 +2353,7 @@
     "cost_equivalent": "Token value · USD",
     "cost_explained": "How this estimate works",
     "cost_assumptions": "Equivalent token cost, not your subscription bill. Standard API rates verified {{date}}, applied to all recorded history. Assumes 5-minute Claude cache writes; cache duration and speed tier are not recorded. Fast mode, regional premiums and tool fees are excluded.",
-    "cost_formula": "(Input − cache reads − cache writes) × input rate + cache reads × read rate + cache writes × write rate + output × output rate. Reasoning is already in output. OpenAI prompts over 272K input tokens use long-context rates per attempt.",
+    "cost_formula": "(Input − cache reads − cache writes) × input rate + cache reads × read rate + cache writes × write rate + output × output rate. Reasoning is already in output. OpenAI text-model prompts over 272K input tokens use long-context rates per attempt.",
     "cost_unpriced": "Excluded attempts: {{count}} (unknown model price or incomplete token data).",
     "breakdown_title": "Who uses what",
     "breakdown_intro": "Providers and models for each selected person · same period as the chart.",
@@ -2361,6 +2361,10 @@
     "breakdown_requests": "Requests: {{value}}",
     "breakdown_attempts": "Attempts: {{value}}",
     "breakdown_note": "Provider shares count upstream attempts, including retries. A request that switches models can appear in multiple model rows; model request counts may exceed the person’s total.",
-    "breakdown_unavailable": "Per-person model data is unavailable from this collector."
+    "breakdown_unavailable": "Per-person model data is unavailable from this collector.",
+    "cost_image_short": "Includes image estimates as ranges",
+    "cost_image_range": "Image input text/image split is unavailable. The range covers that mix at Standard rates with recorded cache reads; unreported cache discounts and partial-image fees are excluded.",
+    "cost_image_chart": "Image estimates use ranges; bar heights and shares use the lower end",
+    "cost_image_details": "GPT Image rates verified {{date}}: text input $5 / cached $1.25, image input $8 / cached $2, image output $30 per 1M tokens. Without input modality detail, show the text-to-image price range. Unreported cache discounts and partial-image fees are excluded. The undocumented gpt-image-2.5 label remains unpriced."
   }
 }

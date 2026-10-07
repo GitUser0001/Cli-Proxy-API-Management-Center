@@ -7,7 +7,7 @@ import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { apiClient } from '@/services/api/client';
 import { deviceUsageApi, type DeviceUsage, type UsageMetrics } from '@/services/api/deviceUsage';
 import styles from './DeviceUsagePage.module.scss';
-import { formatCost } from './cost';
+import { costTitle, formatCost } from './cost';
 import { PersonModelBreakdown } from './PersonModelBreakdown';
 import { UsageTimeline } from './UsageTimeline';
 import {
@@ -96,10 +96,7 @@ export function DeviceUsagePage() {
     );
   const hasPricing = Boolean(data?.pricing);
   const cost = (row: UsageMetrics) => formatCost(row, i18n.language);
-  const costTitle = (row: UsageMetrics) =>
-    row.unpriced_executions
-      ? t('device_usage.cost_unpriced', { count: row.unpriced_executions })
-      : t('device_usage.cost_equivalent');
+  const title = (row: UsageMetrics) => costTitle(row, t);
   const columns = [
     'requests',
     'input',
@@ -132,7 +129,7 @@ export function DeviceUsagePage() {
           {rows.map((row) => (
             <tr key={row.label}>
               <th scope="row">{row.label}</th>
-              {hasPricing && <td title={costTitle(row)}>{cost(row)}</td>}
+              {hasPricing && <td title={title(row)}>{cost(row)}</td>}
               {columns.map((key) => (
                 <td key={key}>{number(row[key])}</td>
               ))}
@@ -208,8 +205,11 @@ export function DeviceUsagePage() {
             {hasPricing && (
               <div className={styles.costStat}>
                 <span>{t('device_usage.cost')}</span>
-                <strong title={costTitle(totals)}>{cost(totals)}</strong>
+                <strong title={title(totals)}>{cost(totals)}</strong>
                 <small>{t('device_usage.cost_equivalent')}</small>
+                {totals.image_estimated_executions ? (
+                  <small>{t('device_usage.cost_image_short')}</small>
+                ) : null}
               </div>
             )}
             {(['requests', 'total', 'cache_read', 'errors'] as const).map((key) => (
@@ -224,6 +224,9 @@ export function DeviceUsagePage() {
               <summary>{t('device_usage.cost_explained')}</summary>
               <p>{t('device_usage.cost_assumptions', { date: data.pricing!.as_of })}</p>
               <p>{t('device_usage.cost_formula')}</p>
+              {data.pricing?.image_as_of && (
+                <p>{t('device_usage.cost_image_details', { date: data.pricing.image_as_of })}</p>
+              )}
               <p className={totals.unpriced_executions ? styles.notice : undefined}>
                 {t('device_usage.cost_unpriced', { count: totals.unpriced_executions ?? 0 })}
               </p>
@@ -249,6 +252,14 @@ export function DeviceUsagePage() {
                 rel="noreferrer"
               >
                 Claude
+              </a>
+              {' · '}
+              <a
+                href="https://developers.openai.com/api/docs/pricing#image-generation-models"
+                target="_blank"
+                rel="noreferrer"
+              >
+                GPT Image
               </a>
             </details>
           )}

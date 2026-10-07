@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DeviceUsage } from '@/services/api/deviceUsage';
-import { formatCost } from '@/features/deviceUsage/cost';
+import { costTitle, formatCost } from '@/features/deviceUsage/cost';
 import { todaySummary } from '../todayUsage';
 import styles from '../dashboard.module.scss';
 
@@ -34,9 +34,7 @@ export function TeamSpendHero({ data, loading, error, timezone }: Props) {
       <strong
         className={`${styles.heroFigure} ${styles.heroCurrency}`}
         style={{ '--money-chars': value.length } as CSSProperties}
-        title={
-          team?.unpriced_executions ? t('dashboard.today_partial') : t('dashboard.today_estimate')
-        }
+        title={team ? costTitle(team, t) : t('dashboard.today_estimate')}
       >
         {value}
       </strong>
@@ -45,6 +43,9 @@ export function TeamSpendHero({ data, loading, error, timezone }: Props) {
       </span>
       <div className={styles.heroSpendFoot}>
         <span>{t('dashboard.hero_team_scope')}</span>
+        {team?.image_estimated_executions ? (
+          <span>{t('device_usage.cost_image_short')}</span>
+        ) : null}
         <span>
           {t(
             error

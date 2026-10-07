@@ -15,6 +15,8 @@ export interface UsageMetrics {
   latency_ms: number;
   incomplete: number;
   cost_usd?: number;
+  cost_usd_max?: number;
+  image_estimated_executions?: number;
   unpriced_executions?: number;
 }
 export interface DeviceUsage {
@@ -31,7 +33,7 @@ export interface DeviceUsage {
     partial: boolean;
   })[];
   timezone?: string;
-  pricing?: { as_of: string; currency: string; basis: string };
+  pricing?: { as_of: string; image_as_of?: string; currency: string; basis: string };
   totals: UsageMetrics;
   clients: (UsageMetrics & { client: string })[];
   models: (UsageMetrics & { provider: string; model: string })[];

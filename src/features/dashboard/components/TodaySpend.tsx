@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { DeviceUsage, UsageMetrics } from '@/services/api/deviceUsage';
 import { colorFor } from '@/features/deviceUsage/timeline';
-import { formatCost } from '@/features/deviceUsage/cost';
+import { costTitle, formatCost } from '@/features/deviceUsage/cost';
 import { todaySummary } from '../todayUsage';
 import styles from './TodaySpend.module.scss';
 
@@ -19,8 +19,7 @@ export function TodaySpend({ data, loading, error, timezone, onRetry }: Props) {
   const { t, i18n } = useTranslation();
   const summary = data ? todaySummary(data) : null;
   const cost = (row: UsageMetrics) => formatCost(row, i18n.language);
-  const title = (row: UsageMetrics) =>
-    row.unpriced_executions ? t('dashboard.today_partial') : t('dashboard.today_estimate');
+  const title = (row: UsageMetrics) => costTitle(row, t);
   const date = data?.range_end
     ? new Intl.DateTimeFormat(i18n.language, {
         month: 'short',
@@ -99,6 +98,9 @@ export function TodaySpend({ data, loading, error, timezone, onRetry }: Props) {
       <footer className={styles.footer}>
         <span>
           {t('dashboard.today_estimate')}
+          {data?.totals.image_estimated_executions ? (
+            <> · {t('device_usage.cost_image_chart')}</>
+          ) : null}
           {summary && summary.apps.executions > 0 && (
             <>
               {' '}

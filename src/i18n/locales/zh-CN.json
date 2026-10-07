@@ -2351,7 +2351,7 @@
     "cost_equivalent": "Token 价值 · USD",
     "cost_explained": "估算方式",
     "cost_assumptions": "这是 Token 的等值费用，并非订阅账单。标准 API 费率核实于 {{date}}，适用于全部已记录历史。假设 Claude 缓存写入有效期为 5 分钟；未记录缓存时长和速度档位。不含快速模式、区域附加费及工具费用。",
-    "cost_formula": "（输入 − 缓存读取 − 缓存写入）× 输入费率 + 缓存读取 × 读取费率 + 缓存写入 × 写入费率 + 输出 × 输出费率。推理已包含在输出中。OpenAI 输入超过 272K Token 的每次尝试采用长上下文费率。",
+    "cost_formula": "（输入 − 缓存读取 − 缓存写入）× 输入费率 + 缓存读取 × 读取费率 + 缓存写入 × 写入费率 + 输出 × 输出费率。推理已包含在输出中。OpenAI 文本模型输入超过 272K Token 的每次尝试采用长上下文费率。",
     "cost_unpriced": "已排除 {{count}} 次尝试：模型价格未知或 Token 数据不完整。",
     "breakdown_title": "谁在使用什么",
     "breakdown_intro": "每位所选用户的提供商与模型 · 与图表采用相同时段。",
@@ -2359,6 +2359,10 @@
     "breakdown_requests": "{{value}} 次请求",
     "breakdown_attempts": "{{value}} 次尝试",
     "breakdown_note": "提供商占比按上游尝试次数计算，包含重试。切换模型的请求可出现在多行中，因此各模型请求数之和可能超过个人总数。",
-    "breakdown_unavailable": "此采集器未提供按用户划分的模型数据。"
+    "breakdown_unavailable": "此采集器未提供按用户划分的模型数据。",
+    "cost_image_short": "包含以范围表示的图像估算",
+    "cost_image_range": "缺少输入文本和图像的细分。范围按标准费率及已记录的缓存读取计算；不含未报告的缓存折扣和中间图像费用。",
+    "cost_image_chart": "图像估算显示范围；柱高和占比采用下限",
+    "cost_image_details": "GPT Image 费率核验于 {{date}}：每百万 token 文本输入 $5 / 缓存 $1.25、图像输入 $8 / 缓存 $2、图像输出 $30。缺少输入模态细分时，显示从文本到图像费率的范围。不含未报告的缓存折扣和中间图像费用。未有官方说明的 gpt-image-2.5 标签仍不计价。"
   }
 }

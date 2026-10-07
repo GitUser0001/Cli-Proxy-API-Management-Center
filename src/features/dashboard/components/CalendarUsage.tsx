@@ -2,7 +2,7 @@ import { useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Collapsible } from '@/components/ui/Collapsible';
 import type { CalendarGranularity, DeviceUsage } from '@/services/api/deviceUsage';
-import { formatCost } from '@/features/deviceUsage/cost';
+import { costTitle, formatCost } from '@/features/deviceUsage/cost';
 import { colorFor, sumMetrics } from '@/features/deviceUsage/timeline';
 import { formatCompactNumber } from '@/utils/format';
 import {
@@ -126,15 +126,7 @@ export function CalendarUsage({
           </div>
           <div className={styles.summary}>
             <span>{t(`dashboard.calendar_range_${granularity}`)}</span>
-            <strong
-              title={
-                metric === 'cost'
-                  ? total.unpriced_executions
-                    ? t('dashboard.today_partial')
-                    : t('dashboard.today_estimate')
-                  : undefined
-              }
-            >
+            <strong title={metric === 'cost' ? costTitle(total, t) : undefined}>
               {!data
                 ? '—'
                 : metric === 'cost'
@@ -146,6 +138,9 @@ export function CalendarUsage({
         <figure className={chart.chart}>
           <figcaption className={styles.caption}>
             {timezone} · {t('dashboard.calendar_current_partial')}
+            {metric === 'cost' && total.image_estimated_executions ? (
+              <> · {t('device_usage.cost_image_chart')}</>
+            ) : null}
           </figcaption>
           <div className={`${chart.plot} ${styles.plot}`}>
             {!data && (
@@ -184,11 +179,7 @@ export function CalendarUsage({
                       className={`${styles.barButton} ${chosen === row ? styles.active : ''}`}
                       aria-label={`${periodLabel(row)}: ${valueLabel(row)} ${t(`dashboard.calendar_${metric}`)}`}
                       aria-pressed={chosen === row}
-                      title={
-                        metric === 'cost' && row.unpriced_executions
-                          ? t('dashboard.today_partial')
-                          : undefined
-                      }
+                      title={metric === 'cost' ? costTitle(row, t) : undefined}
                       onMouseEnter={() => setActiveKey(row.period_start)}
                       onFocus={() => setActiveKey(row.period_start)}
                       onClick={() => setActiveKey(row.period_start)}
@@ -289,9 +280,7 @@ export function CalendarUsage({
                     <i style={{ background: colorFor(person.colorIndex) }} aria-hidden="true" />
                     {person.name === 'apps' ? t('dashboard.calendar_apps') : person.name}
                   </span>
-                  <strong
-                    title={person.unpriced_executions ? t('dashboard.today_partial') : undefined}
-                  >
+                  <strong title={metric === 'cost' ? costTitle(person, t) : undefined}>
                     {amount}
                   </strong>
                   <span className={styles.share} aria-hidden="true">

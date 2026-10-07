@@ -34,9 +34,27 @@ RATES = {
     ('codex', 'gpt-6.1-sol'): (2, .1, 2.5, 10),
     ('codex', 'gpt-6-luna'): (.1, .01, .125, .5),
 }
+IMAGE_PRICING_DATE = '2026-10-07'
+# Exact identifiers only. The unsuffixed 2.5 tool label is not a documented API
+# model: keep it unpriced rather than guessing which model produced the image.
+IMAGE_MODELS = {'gpt-image-2', 'gpt-image-2-2026-04-21',
+                'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'}
+
+
+def image_cost(provider, model, inp, out, read, write, quality, upper=False):
+    if (provider != 'codex' or model not in IMAGE_MODELS or quality != 'complete'
+            or write != 0 or min(inp, out, read) < 0 or read > inp):
+        return None
+    # v8 drops text/image input detail. Bound the modality mix using the text
+    # and image rates, with recorded cache reads separately. Unreported cache
+    # discounts and partial-image fees are outside this API-equivalent estimate.
+    rate, cached = (8, 2) if upper else (5, 1.25)
+    return ((inp - read) * rate + read * cached + out * 30) / 1000000
 
 
 def estimate_cost(provider, model, inp, out, read, write, quality):
+    if provider == 'codex' and model in IMAGE_MODELS:
+        return image_cost(provider, model, inp, out, read, write, quality)
     rates = RATES.get((provider, model))
     if rates is None or quality != 'complete':
         return None
@@ -50,10 +68,17 @@ def estimate_cost(provider, model, inp, out, read, write, quality):
             + out * rates[3] * (1.5 if long_context else 1)) / 1000000
 
 
+def estimate_cost_max(provider, model, inp, out, read, write, quality):
+    if provider == 'codex' and model in IMAGE_MODELS:
+        return image_cost(provider, model, inp, out, read, write, quality, upper=True)
+    return estimate_cost(provider, model, inp, out, read, write, quality)
+
+
 def connect(path=DB):
     c = sqlite3.connect(path, timeout=20)
     c.row_factory = sqlite3.Row
     c.create_function('estimate_cost', 7, estimate_cost, deterministic=True)
+    c.create_function('estimate_cost_max', 7, estimate_cost_max, deterministic=True)
     c.execute('PRAGMA journal_mode=WAL')
     c.execute('''CREATE TABLE IF NOT EXISTS events (
         id TEXT PRIMARY KEY, ts TEXT NOT NULL, client TEXT NOT NULL,
@@ -198,7 +223,10 @@ def report(c, days, registry, interval='auto', now=None, period='rolling', timez
     until = now.isoformat(timespec='microseconds')
     sums = ','.join(f'COALESCE(SUM({m}),0) AS {m}' for m in METRICS)
     cost = 'estimate_cost(provider,model,input,output,cache_read,cache_write,quality)'
-    costs = f'COALESCE(SUM({cost}),0) AS cost_usd,COALESCE(SUM({cost} IS NULL),0) AS unpriced_executions'
+    upper = 'estimate_cost_max(provider,model,input,output,cache_read,cache_write,quality)'
+    costs = (f'COALESCE(SUM({cost}),0) AS cost_usd,COALESCE(SUM({upper}),0) AS cost_usd_max,'
+             f'COALESCE(SUM({upper} > {cost}),0) AS image_estimated_executions,'
+             f'COALESCE(SUM({cost} IS NULL),0) AS unpriced_executions')
     aggregate = f'COUNT(*) AS executions, COUNT(DISTINCT client || char(58) || trace) AS requests, COALESCE(SUM(failed),0) AS errors,{sums},COALESCE(AVG(latency_ms),0) AS latency_ms,COALESCE(SUM(quality != "complete"),0) AS incomplete,{costs}'
     def query(sql):
         return [dict(r) for r in c.execute(sql, (since, until))]
@@ -208,7 +236,7 @@ def report(c, days, registry, interval='auto', now=None, period='rolling', timez
     totals = query(f'SELECT {aggregate} FROM events WHERE {window}')[0]
     clients = query(f'SELECT client,{aggregate} FROM events WHERE {window} GROUP BY client ORDER BY total DESC')
     found = {r['client'] for r in clients}
-    empty = dict.fromkeys(['executions','requests','errors','latency_ms','incomplete','cost_usd','unpriced_executions'] + METRICS, 0)
+    empty = dict.fromkeys(['executions','requests','errors','latency_ms','incomplete','cost_usd','cost_usd_max','image_estimated_executions','unpriced_executions'] + METRICS, 0)
     clients += [dict(empty, client=name) for name in sorted(set(registry.values()) - found)]
     models = query(f'SELECT provider,model,{aggregate} FROM events WHERE {window} GROUP BY provider,model ORDER BY total DESC')
     client_models = query(f'SELECT client,provider,model,{aggregate} FROM events WHERE {window} GROUP BY client,provider,model ORDER BY total DESC')
@@ -251,7 +279,8 @@ def report(c, days, registry, interval='auto', now=None, period='rolling', timez
                 totals=totals, clients=clients, models=models, daily=daily,
                 client_models=client_models, collector=collector, timeline=timeline,
                 interval=interval, bucket_seconds=seconds, range_start=since, range_end=until,
-                pricing=dict(as_of=PRICING_DATE, currency='USD', basis='standard-5m-cache'), **calendar)
+                pricing=dict(as_of=PRICING_DATE, image_as_of=IMAGE_PRICING_DATE,
+                             currency='USD', basis='standard-5m-cache-image-range'), **calendar)
 
 
 class Handler(BaseHTTPRequestHandler):

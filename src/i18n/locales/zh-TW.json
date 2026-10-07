@@ -2377,7 +2377,7 @@
     "cost_equivalent": "Token 價值 · USD",
     "cost_explained": "估算方式",
     "cost_assumptions": "這是 Token 的等值費用，並非訂閱帳單。標準 API 費率核實於 {{date}}，適用於全部已記錄歷史。假設 Claude 快取寫入有效期為 5 分鐘；未記錄快取時長和速度級別。不含快速模式、區域附加費及工具費用。",
-    "cost_formula": "（輸入 − 快取讀取 − 快取寫入）× 輸入費率 + 快取讀取 × 讀取費率 + 快取寫入 × 寫入費率 + 輸出 × 輸出費率。推理已包含在輸出中。OpenAI 輸入超過 272K Token 的每次嘗試採用長上下文費率。",
+    "cost_formula": "（輸入 − 快取讀取 − 快取寫入）× 輸入費率 + 快取讀取 × 讀取費率 + 快取寫入 × 寫入費率 + 輸出 × 輸出費率。推理已包含在輸出中。OpenAI 文字模型輸入超過 272K Token 的每次嘗試採用長上下文費率。",
     "cost_unpriced": "已排除 {{count}} 次嘗試：模型價格未知或 Token 資料不完整。",
     "breakdown_title": "誰在使用什麼",
     "breakdown_intro": "每位所選使用者的供應商與模型 · 與圖表採用相同時段。",
@@ -2385,6 +2385,10 @@
     "breakdown_requests": "{{value}} 次請求",
     "breakdown_attempts": "{{value}} 次嘗試",
     "breakdown_note": "供應商占比按上游嘗試次數計算，包含重試。切換模型的請求可出現在多列中，因此各模型請求數之和可能超過個人總數。",
-    "breakdown_unavailable": "此收集器未提供按使用者劃分的模型資料。"
+    "breakdown_unavailable": "此收集器未提供按使用者劃分的模型資料。",
+    "cost_image_short": "包含以範圍表示的圖像估算",
+    "cost_image_range": "缺少輸入文字和圖像的細分。範圍按標準費率及已記錄的快取讀取計算；不含未回報的快取折扣和中間圖像費用。",
+    "cost_image_chart": "圖像估算顯示範圍；柱高和佔比採用下限",
+    "cost_image_details": "GPT Image 費率核驗於 {{date}}：每百萬 token 文字輸入 $5 / 快取 $1.25、圖像輸入 $8 / 快取 $2、圖像輸出 $30。缺少輸入模態細分時，顯示從文字到圖像費率的範圍。不含未回報的快取折扣和中間圖像費用。未有官方說明的 gpt-image-2.5 標籤仍不計價。"
   }
 }

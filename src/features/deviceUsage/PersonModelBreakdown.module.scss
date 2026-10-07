@@ -27,6 +27,7 @@
 }
 .personHeader {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   align-items: baseline;
@@ -44,7 +45,8 @@
 }
 .cost {
   text-align: right;
-  flex-shrink: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   strong {
     display: block;
     margin-bottom: 5px;

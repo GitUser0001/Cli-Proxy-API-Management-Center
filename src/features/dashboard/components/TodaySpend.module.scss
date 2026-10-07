@@ -169,6 +169,8 @@
   .header {
     padding: 20px;
     align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
   }
   .title {
     font-size: 18px;
@@ -177,8 +179,13 @@
     font-size: 10px;
     line-height: 1.6;
   }
-  .total strong {
-    font-size: 22px;
+  .total {
+    text-align: left;
+    max-width: 100%;
+    strong {
+      font-size: 22px;
+      overflow-wrap: anywhere;
+    }
   }
   .footer {
     padding: 14px 20px;

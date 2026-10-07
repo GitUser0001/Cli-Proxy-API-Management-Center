@@ -29,6 +29,56 @@ class UsageTests(unittest.TestCase):
 
 
 class PricingTests(unittest.TestCase):
+    def test_image_modality_bounds_and_explicit_models(self):
+        for model in sorted(u.IMAGE_MODELS):
+            args = ('codex', model, 1000, 2000, 200, 0, 'complete')
+            self.assertAlmostEqual(u.estimate_cost(*args), .06425)
+            self.assertAlmostEqual(u.estimate_cost_max(*args), .0668)
+        # Images do not inherit the text-model 272K premium.
+        self.assertAlmostEqual(u.estimate_cost('codex', 'gpt-image-2', 300000, 0, 0, 0, 'complete'), 1.5)
+        for provider, model, quality, write in [
+            ('claude','gpt-image-2','complete',0),
+            ('codex','gpt-image-2.5','complete',0),
+            ('codex','gpt-image-2-unknown','complete',0),
+            ('codex','gpt-image-2','unclassified',0),
+            ('codex','gpt-image-2','complete',1),
+        ]:
+            args = (provider, model, 1000, 2000, 0, write, quality)
+            self.assertIsNone(u.estimate_cost(*args))
+            self.assertIsNone(u.estimate_cost_max(*args))
+
+    def test_image_ranges_reconcile_across_every_report_group(self):
+        import datetime as dt
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'test.db')
+            registry = {hashlib.sha256(b'secret-client').hexdigest(): 'dan-macbook', 'idle': 'idle'}
+            events = []
+            for ident, provider, model in [('image','codex','gpt-image-2'), ('retry','codex','gpt-image-2'),
+                    ('text','claude','claude-opus-5-5'), ('unknown','codex','gpt-image-2.5')]:
+                e = UsageTests().event()
+                e.update(execution_id=ident, provider=provider, model=model, trace_id='same', failed=ident=='retry')
+                e['token_breakdown']['input'].update(cache_read_tokens=0, cache_write_tokens=0)
+                events.append(e)
+            u.record_batch(c, events, registry)
+            for period in ['rolling','today','calendar']:
+                result = u.report(c, 1, registry, now=dt.datetime(2026,10,4,13,tzinfo=dt.timezone.utc),
+                    period=period, timezone='UTC', granularity='day', calendar_count=7)
+                self.assertAlmostEqual(result['totals']['cost_usd'], .003)
+                self.assertAlmostEqual(result['totals']['cost_usd_max'], .0036)
+                self.assertEqual(result['totals']['image_estimated_executions'], 2)
+                self.assertEqual(result['totals']['unpriced_executions'], 1)
+                self.assertEqual(result['totals']['requests'], 1)
+                for key in ['clients','models','daily','timeline','client_models'] + (['series'] if period=='calendar' else []):
+                    for metric in ['cost_usd','cost_usd_max','image_estimated_executions','unpriced_executions']:
+                        self.assertAlmostEqual(sum(r[metric] for r in result[key]),result['totals'][metric])
+                if period=='calendar':
+                    for bucket in result['series']:
+                        self.assertAlmostEqual(sum(r['cost_usd_max'] for r in bucket['clients']),bucket['cost_usd_max'])
+            idle = next(r for r in result['clients'] if r['client']=='idle')
+            self.assertEqual((idle['cost_usd'],idle['cost_usd_max'],idle['image_estimated_executions']), (0,0,0))
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM events').fetchone()[0], 4)
+            c.close()
+
     def test_cache_and_reasoning_are_not_charged_twice(self):
         # 10 uncached + 70 read + 20 write + 20 output (including reasoning).
         self.assertAlmostEqual(u.estimate_cost('claude', 'claude-opus-5-5', 100, 20, 70, 20, 'complete'), .000554)

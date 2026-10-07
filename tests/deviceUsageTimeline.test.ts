@@ -207,6 +207,53 @@ describe('API cost estimates', () => {
     expect(formatCost({ ...row, cost_usd: 0.001 }, 'en-US')).toBe('<$0.01');
     expect(formatCost({ ...row, cost_usd: 0 }, 'en-US')).toBe('≈$0.00');
   });
+  test('preserves image ranges through people/model filters and rounds outward', () => {
+    const image = {
+      ...metrics(1),
+      cost_usd: 0.491865,
+      cost_usd_max: 0.535272,
+      image_estimated_executions: 1,
+      unpriced_executions: 0,
+      client: 'dan-macbook',
+      provider: 'codex',
+      model: 'gpt-image-2',
+    };
+    const text = {
+      ...image,
+      client: 'devbox-dshcherbak',
+      cost_usd: 1,
+      cost_usd_max: 1,
+      image_estimated_executions: 0,
+      model: 'gpt-6.1-sol',
+    };
+    const grouped = groupUsageByPerson({
+      ...data,
+      clients: [image, text],
+      client_models: [image, text],
+    });
+    const dan = grouped.clients[0];
+    expect(dan.cost_usd).toBeCloseTo(1.491865);
+    expect(dan.cost_usd_max).toBeCloseTo(1.535272);
+    expect(dan.image_estimated_executions).toBe(1);
+    expect(formatCost(dan, 'en-US')).toBe('≈$1.49–$1.54');
+    expect(
+      formatCost(
+        modelRows(grouped, ['Dan']).find((r) => r.model === 'gpt-image-2')!,
+        'en-US'
+      )
+    ).toBe('≈$0.49–$0.54');
+    expect(modelRows(grouped, ['Denis'])).toEqual([]);
+    expect(formatCost({ ...image, unpriced_executions: 0 }, 'en-US')).toBe('≈$0.49–$0.54');
+    expect(formatCost({ ...image, executions: 2, unpriced_executions: 1 }, 'en-US')).toBe(
+      '≈$0.49–$0.54*'
+    );
+    expect(formatCost({ ...image, cost_usd: 0.001, cost_usd_max: 0.002 }, 'en-US')).toBe(
+      '≈$0.00–$0.01'
+    );
+    expect(formatCost({ ...image, cost_usd: 1.5, cost_usd_max: 1.5 }, 'en-US')).toBe('≈$1.50');
+    expect(sumMetrics([]).cost_usd_max).toBe(0);
+    expect(sumMetrics([metrics(1)]).cost_usd_max).toBeUndefined();
+  });
 });
 
 describe('People, providers and models', () => {

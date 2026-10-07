@@ -331,7 +331,8 @@
   container-type: inline-size;
 }
 .heroCurrency {
-  font-size: clamp(28px, calc(100cqw / var(--money-chars) * 1.55), 62px);
+  font-size: clamp(16px, calc(100cqw / var(--money-chars) * 1.55), 62px);
+  overflow-wrap: anywhere;
   margin-top: 6px;
 }
 .heroSpendFoot {

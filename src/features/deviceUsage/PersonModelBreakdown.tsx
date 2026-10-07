@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/Card';
 import type { DeviceUsage } from '@/services/api/deviceUsage';
 import { colorFor } from './timeline';
 import { personModelRows } from './breakdown';
-import { formatCost } from './cost';
+import { costTitle, formatCost } from './cost';
 import styles from './PersonModelBreakdown.module.scss';
 
 const providerName = (name: string) =>
@@ -50,7 +50,9 @@ export function PersonModelBreakdown({
                 </div>
                 {priced && (
                   <div className={styles.cost}>
-                    <strong>{formatCost(person, i18n.language)}</strong>
+                    <strong title={costTitle(person, t)}>
+                      {formatCost(person, i18n.language)}
+                    </strong>
                     <span>{t('device_usage.cost')}</span>
                   </div>
                 )}
@@ -108,17 +110,7 @@ export function PersonModelBreakdown({
                             <td>{number(row.requests)}</td>
                             <td title={number(row.total)}>{compact(row.total)}</td>
                             {priced && (
-                              <td
-                                title={
-                                  row.unpriced_executions
-                                    ? t('device_usage.cost_unpriced', {
-                                        count: row.unpriced_executions,
-                                      })
-                                    : undefined
-                                }
-                              >
-                                {formatCost(row, i18n.language)}
-                              </td>
+                              <td title={costTitle(row, t)}>{formatCost(row, i18n.language)}</td>
                             )}
                           </tr>
                         ))}
