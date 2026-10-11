@@ -36,6 +36,21 @@ describe('quota ledger', () => {
       'devbox.json'
     );
   });
+  test('keeps plugin identities distinct while applying the ledger email display policy', () => {
+    const file = {
+      name: 'plugin.json', provider: 'kiro', quotaProvider: 'kiro',
+      authIndex: 'plugin-identity', supportsQuota: true, account: 'do-not-display',
+    };
+    expect(getQuotaDisplayName(file)).toBe('plugin.json · plugin-identity');
+    expect(getQuotaCacheKey(file)).toBe('plugin.json\0plugin-identity');
+    expect(getQuotaDisplayName({ ...file, email: 'demo@example.test' })).toBe(
+      'plugin.json · demo@example.test'
+    );
+    expect(maskQuotaEmails(getQuotaDisplayName({ ...file, email: 'demo@example.test' }))).toBe(
+      'plugin.json · •••@•••'
+    );
+    expect(getQuotaDisplayName({ ...file, authIndex: undefined })).toBe('plugin.json');
+  });
   test('distinguishes unknown, empty and exhausted capacity', () => {
     expect(remainingPercent(null)).toBeNull();
     expect(remainingPercent(Number.NaN)).toBeNull();

@@ -1,27 +1,26 @@
 import type { AuthFileItem } from '@/types';
 import { normalizeRecentRequestAuthIndex } from '@/utils/recentRequests';
-import { isDevinFile } from './validators';
+import { isDevinFile, isPluginQuotaFile } from './validators';
 
 const QUOTA_IDENTITY_SEPARATOR = '\0';
 
 /**
- * Cache identity is filename-based for every existing provider. Devin alone can
- * expose multiple credential identities from one physical file, distinguished
- * by auth_index.
+ * Devin and backend quota providers can expose multiple credential identities
+ * from one physical file, distinguished by auth_index.
  */
 export function getQuotaCacheKey(file: AuthFileItem): string {
-  if (!isDevinFile(file)) return file.name;
+  if (!isDevinFile(file) && !isPluginQuotaFile(file)) return file.name;
   const authIndex = normalizeRecentRequestAuthIndex(file.authIndex);
   return `${file.name}${QUOTA_IDENTITY_SEPARATOR}${authIndex ?? ''}`;
 }
 
-/** Show available email metadata without changing cache identity or using account secrets. */
+/** Show email metadata and disambiguate provider identities without using account secrets. */
 export function getQuotaDisplayName(file: AuthFileItem): string {
   const email = file.email?.trim();
   if (email && !file.name.toLowerCase().includes(email.toLowerCase())) {
     return `${file.name} · ${email}`;
   }
-  if (!isDevinFile(file) || email) return file.name;
+  if ((!isDevinFile(file) && !isPluginQuotaFile(file)) || email) return file.name;
   const identity = normalizeRecentRequestAuthIndex(file.authIndex);
   return identity ? `${file.name} · ${identity}` : file.name;
 }
