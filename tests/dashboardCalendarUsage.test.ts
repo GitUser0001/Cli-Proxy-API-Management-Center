@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import {
   calendarPeople,
   calendarScale,
+  calendarStack,
   calendarValue,
   type CalendarBucket,
 } from '../src/features/dashboard/calendarUsage';
@@ -31,6 +32,70 @@ test('calendar chart separates missing history and unknown pricing from real zer
   expect(calendarValue({ ...row, unpriced_executions: 1 }, 'cost')).toBe(0.0001);
   expect(calendarValue({ ...row, requests: 0 }, 'requests')).toBe(0);
   expect(calendarValue(row, 'tokens')).toBe(100);
+});
+
+test('stacked calendar bars preserve person colors and upper image contributions', () => {
+  const bucket = {
+    ...row,
+    cost_usd: 4,
+    cost_usd_max: 8,
+    clients: [
+      { ...row, client: 'dan-macbook', cost_usd: 1, cost_usd_max: 3 },
+      { ...row, client: 'devbox-dshcherbak', cost_usd: 1, cost_usd_max: 2 },
+      { ...row, client: 'portal-demo-app', cost_usd: 2, cost_usd_max: 3 },
+    ],
+  };
+  const stack = calendarStack(bucket, 'cost');
+  expect(stack.map(({ name, colorIndex }) => [name, colorIndex])).toEqual([
+    ['Dan', 0],
+    ['Denis', 1],
+    ['Hlib', 2],
+    ['Dima', 3],
+    ['apps', 4],
+  ]);
+  expect(stack[0].share).toBe(5 / 8);
+  expect(stack[4].share).toBe(3 / 8);
+  expect(stack.reduce((sum, person) => sum + person.share, 0)).toBe(1);
+});
+
+test('stacked calendar bars leave missing breakdowns and unknown prices uncolored', () => {
+  expect(calendarStack(row, 'cost').every((person) => person.share === 0)).toBe(true);
+  expect(
+    calendarStack({ ...row, available: false, clients: [] }, 'tokens').every(
+      (person) => person.value === null && person.share === 0
+    )
+  ).toBe(true);
+  const partial = calendarStack(
+    {
+      ...row,
+      cost_usd: 4,
+      clients: [
+        { ...row, client: 'dan-macbook', cost_usd: 1 },
+        { ...row, client: 'portal-demo-app', cost_usd: undefined },
+      ],
+    },
+    'cost'
+  );
+  expect(partial[0].share).toBe(0.25);
+  expect(partial[4].value).toBeNull();
+  expect(partial[4].share).toBe(0);
+});
+
+test('stacked calendar bars stay finite for idle and repeated cross-client requests', () => {
+  const idle = calendarStack({ ...row, requests: 0, clients: [] }, 'requests');
+  expect(idle.every((person) => person.value === 0 && person.share === 0)).toBe(true);
+  const overlap = calendarStack(
+    {
+      ...row,
+      clients: [
+        { ...row, client: 'dan-macbook' },
+        { ...row, client: 'portal-demo-app' },
+      ],
+    },
+    'requests'
+  );
+  expect(overlap[0].share).toBe(0.5);
+  expect(overlap[4].share).toBe(0.5);
 });
 test('calendar dollar scale keeps sub-cent usage visible', () => {
   expect(calendarScale(0.0001, 'cost')).toBeGreaterThanOrEqual(0.0001);

@@ -219,7 +219,7 @@
     "today_retry": "重試",
     "calendar_eyebrow": "使用歷史",
     "calendar_title": "按週期查看使用量",
-    "calendar_description": "按日、週或月比較記錄的權杖價值與活動。懸停或選擇柱形以查看每個人的占比。",
+    "calendar_description": "按日、週或月比較記錄的權杖價值與活動。顏色顯示每個人的占比；展開資料表查看確切數值。",
     "calendar_period": "週期",
     "calendar_metric": "指標",
     "calendar_day": "日",

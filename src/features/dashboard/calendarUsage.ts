@@ -59,3 +59,18 @@ export function calendarPeople(row?: CalendarBucket) {
     },
   ];
 }
+
+// Keep unknown/missing contributions neutral, and never overflow a bucket's total height.
+export function calendarStack(row: CalendarBucket, metric: CalendarMetric) {
+  const people = calendarPeople(row);
+  const values = people.map((person) => calendarValue(person, metric));
+  const denominator = Math.max(
+    calendarValue(row, metric) ?? 0,
+    values.reduce<number>((sum, value) => sum + Math.max(0, value ?? 0), 0)
+  );
+  return people.map((person, index) => ({
+    ...person,
+    value: values[index],
+    share: denominator > 0 ? Math.max(0, values[index] ?? 0) / denominator : 0,
+  }));
+}

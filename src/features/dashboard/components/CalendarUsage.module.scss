@@ -84,25 +84,34 @@
   border-radius: 4px;
 }
 .bar {
-  display: block;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
   width: 100%;
   max-width: 64px;
   min-height: 2px;
   border-radius: 5px 5px 0 0;
-  background: var(--bar-color);
-  opacity: 0.65;
+  background: var(--border-color);
+  overflow: hidden;
+  opacity: 0.85;
   transition: opacity 120ms;
 }
 .active .bar {
   opacity: 1;
 }
-.current {
+.segment {
+  display: block;
+  flex: none;
+  width: 100%;
+  background: var(--segment-color);
+}
+.current .segment {
   background: repeating-linear-gradient(
     135deg,
-    var(--bar-color),
-    var(--bar-color) 6px,
-    color-mix(in srgb, var(--bar-color) 72%, var(--bg-primary)) 6px,
-    color-mix(in srgb, var(--bar-color) 72%, var(--bg-primary)) 9px
+    var(--segment-color),
+    var(--segment-color) 6px,
+    color-mix(in srgb, var(--segment-color) 72%, var(--bg-primary)) 6px,
+    color-mix(in srgb, var(--segment-color) 72%, var(--bg-primary)) 9px
   );
 }
 .unknown {
@@ -127,7 +136,7 @@
 .detail {
   min-height: 72px;
   box-sizing: border-box;
-  margin-top: 34px;
+  margin-top: 0;
   padding: 16px 18px;
   border-radius: 12px;
   background: var(--bg-secondary);
@@ -171,6 +180,27 @@
 }
 .plot {
   position: relative;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 34px;
+  padding: 0 18px;
+}
+.breakdownTable {
+  margin-bottom: 24px;
+  caption {
+    text-align: left;
+    padding: 0 0 12px;
+    color: var(--text-secondary);
+  }
+  th:first-child {
+    text-align: left;
+  }
+  td {
+    white-space: nowrap;
+  }
 }
 .state {
   position: absolute;

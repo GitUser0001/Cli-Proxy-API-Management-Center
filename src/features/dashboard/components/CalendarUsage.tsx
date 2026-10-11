@@ -8,6 +8,7 @@ import { formatCompactNumber } from '@/utils/format';
 import {
   calendarPeople,
   calendarScale,
+  calendarStack,
   calendarValue,
   type CalendarBucket,
   type CalendarMetric,
@@ -41,11 +42,22 @@ export function CalendarUsage({
   const rows = data?.series ?? [];
   const chosen = rows.find((row) => row.period_start === activeKey) ?? rows[rows.length - 1];
   const people = calendarPeople(chosen);
+  const bucketPeople = rows.map((row) => calendarPeople(row));
   const peak = Math.max(0, ...rows.map((row) => calendarValue(row, metric) ?? 0));
   const scale = calendarScale(peak, metric);
   const total = sumMetrics(rows.filter((row) => row.available));
   const count = new Intl.NumberFormat(i18n.language);
   const cost = (row: CalendarBucket) => (row.available ? formatCost(row, i18n.language) : '—');
+  const personName = (person: (typeof people)[number]) =>
+    person.name === 'apps' ? t('dashboard.calendar_apps') : person.name;
+  const personAmount = (person: (typeof people)[number]) =>
+    !person.available
+      ? '—'
+      : metric === 'cost'
+        ? formatCost(person, i18n.language)
+        : metric === 'requests'
+          ? count.format(person.requests)
+          : formatCompactNumber(person.total);
   const valueLabel = (row: CalendarBucket) =>
     metric === 'cost'
       ? cost(row)
@@ -173,11 +185,15 @@ export function CalendarUsage({
               <div className={chart.columns}>
                 {rows.map((row, index) => {
                   const value = calendarValue(row, metric);
+                  const segments = calendarStack(row, metric);
+                  const breakdown = segments
+                    .map((person) => `${personName(person)}: ${personAmount(person)}`)
+                    .join(', ');
                   return (
                     <button
                       key={row.period_start}
                       className={`${styles.barButton} ${chosen === row ? styles.active : ''}`}
-                      aria-label={`${periodLabel(row)}: ${valueLabel(row)} ${t(`dashboard.calendar_${metric}`)}`}
+                      aria-label={`${periodLabel(row)}: ${valueLabel(row)} ${t(`dashboard.calendar_${metric}`)}. ${breakdown}`}
                       aria-pressed={chosen === row}
                       title={metric === 'cost' ? costTitle(row, t) : undefined}
                       onMouseEnter={() => setActiveKey(row.period_start)}
@@ -194,15 +210,25 @@ export function CalendarUsage({
                               value === null
                                 ? '12px'
                                 : `${Math.max(value > 0 ? 1 : 0, (value / scale) * 100)}%`,
-                            '--bar-color':
-                              metric === 'cost'
-                                ? 'var(--viz-success)'
-                                : metric === 'requests'
-                                  ? colorFor(0)
-                                  : 'var(--amber-color)',
                           } as CSSProperties
                         }
-                      />
+                      >
+                        {value !== null &&
+                          segments.map((person) =>
+                            person.share > 0 ? (
+                              <span
+                                key={person.name}
+                                className={styles.segment}
+                                style={
+                                  {
+                                    height: `${person.share * 100}%`,
+                                    '--segment-color': colorFor(person.colorIndex),
+                                  } as CSSProperties
+                                }
+                              />
+                            ) : null
+                          )}
+                      </span>
                       {rows.length <= 8 && value !== null && value > 0 && (
                         <span
                           className={styles.barValue}
@@ -229,6 +255,14 @@ export function CalendarUsage({
                 })}
               </div>
             </div>
+          </div>
+          <div className={styles.legend} role="group" aria-label={t('dashboard.calendar_people')}>
+            {people.map((person) => (
+              <span key={person.name} className={styles.personName}>
+                <i style={{ background: colorFor(person.colorIndex) }} aria-hidden="true" />
+                {personName(person)}
+              </span>
+            ))}
           </div>
           <div className={styles.detail} aria-live="polite">
             <div className={styles.detailDate}>
@@ -265,20 +299,14 @@ export function CalendarUsage({
           >
             {people.map((person) => {
               const value = calendarValue(person, metric);
-              const amount = !person.available
-                ? '—'
-                : metric === 'cost'
-                  ? formatCost(person, i18n.language)
-                  : metric === 'requests'
-                    ? count.format(person.requests)
-                    : formatCompactNumber(person.total);
+              const amount = personAmount(person);
               const full = chosen ? calendarValue(chosen, metric) : null;
               const share = value !== null && full && full > 0 ? value / full : 0;
               return (
                 <div key={person.name} className={styles.person}>
                   <span className={styles.personName}>
                     <i style={{ background: colorFor(person.colorIndex) }} aria-hidden="true" />
-                    {person.name === 'apps' ? t('dashboard.calendar_apps') : person.name}
+                    {personName(person)}
                   </span>
                   <strong title={metric === 'cost' ? costTitle(person, t) : undefined}>
                     {amount}
@@ -295,8 +323,55 @@ export function CalendarUsage({
               );
             })}
           </div>
-          <Collapsible className={chart.tableToggle} label={t('dashboard.traffic_table')}>
+          <Collapsible
+            className={chart.tableToggle}
+            label={t('dashboard.traffic_table')}
+            defaultOpen={false}
+          >
             <div className={styles.tableWrap}>
+              <table className={`${chart.table} ${styles.breakdownTable}`}>
+                <caption>
+                  {t('dashboard.calendar_people')} · {t(`dashboard.calendar_${metric}`)}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{t('dashboard.calendar_people')}</th>
+                    {rows.map((row) => (
+                      <th key={row.period_start} scope="col">
+                        {row.is_current ? t('dashboard.calendar_current') : periodLabel(row)}
+                        {row.partial && row.available ? ' *' : ''}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {people.map((person, personIndex) => (
+                    <tr key={person.name}>
+                      <th scope="row">
+                        <span className={styles.personName}>
+                          <i
+                            style={{ background: colorFor(person.colorIndex) }}
+                            aria-hidden="true"
+                          />
+                          {personName(person)}
+                        </span>
+                      </th>
+                      {rows.map((row, index) => (
+                        <td
+                          key={row.period_start}
+                          title={
+                            metric === 'cost'
+                              ? costTitle(bucketPeople[index][personIndex], t)
+                              : undefined
+                          }
+                        >
+                          {personAmount(bucketPeople[index][personIndex])}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               <table className={chart.table}>
                 <thead>
                   <tr>

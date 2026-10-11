@@ -219,7 +219,7 @@
     "today_retry": "Retry",
     "calendar_eyebrow": "Usage history",
     "calendar_title": "Usage, one period at a time",
-    "calendar_description": "Compare recorded token value and activity by calendar day, week or month. Hover or select a column to see each person’s share.",
+    "calendar_description": "Compare recorded token value and activity by calendar day, week or month. Colors show each person’s share; expand the data table for exact amounts.",
     "calendar_period": "Period",
     "calendar_metric": "Metric",
     "calendar_day": "Days",
