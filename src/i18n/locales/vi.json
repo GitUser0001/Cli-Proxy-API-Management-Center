@@ -2396,9 +2396,10 @@
     "breakdown_attempts": "Attempts: {{value}}",
     "breakdown_note": "Provider shares count upstream attempts, including retries. A request that switches models can appear in multiple model rows; model request counts may exceed the person’s total.",
     "breakdown_unavailable": "Per-person model data is unavailable from this collector.",
-    "cost_image_short": "Includes image estimates at the upper end",
-    "cost_image_range": "Image input text/image split is unavailable. Totals use the upper estimate; model tables retain the Standard-rate range with recorded cache reads. Unreported cache discounts and partial-image fees are excluded.",
-    "cost_image_chart": "Image estimates, bar heights and shares use the upper end; model tables show ranges",
-    "cost_image_details": "GPT Image rates verified {{date}}: text input $5 / cached $1.25, image input $8 / cached $2, image output $30 per 1M tokens. Without input modality detail, totals use the upper estimate and model tables show the text-to-image price range. Unreported cache discounts and partial-image fees are excluded. The undocumented gpt-image-2.5 label remains unpriced."
+    "cost_image_short": "Bao gồm ước tính theo loại token ở mức trên",
+    "cost_image_range": "Một số yêu cầu ảnh/âm thanh thiếu thông tin loại token. Tổng dùng mức trên; bảng mô hình giữ khoảng giá Standard. Không tính giảm giá không được báo cáo và phí công cụ.",
+    "cost_image_chart": "Ước tính, chiều cao cột và tỷ lệ dùng mức trên; bảng mô hình hiển thị khoảng",
+    "cost_image_details": "GPT Image rates verified {{date}}: text input $5 / cached $1.25, image input $8 / cached $2, image output $30 per 1M tokens. Without input modality detail, totals use the upper estimate and model tables show the text-to-image price range. Unreported cache discounts and partial-image fees are excluded. The undocumented gpt-image-2.5 label remains unpriced.",
+    "cost_antigravity_details": "Giá API tương đương Antigravity được kiểm tra {{date}}: Gemini và Claude dùng giá Standard công khai. Thiếu loại token ảnh/âm thanh thì hiển thị khoảng; tổng dùng mức trên. Giá ưu đãi Gemini 3.6–3.8 Flash hết hạn ngày 31/12/2026. Không tính thời gian lưu cache và phí grounding. GPT-OSS chưa có giá công khai tương đương."
   }
 }

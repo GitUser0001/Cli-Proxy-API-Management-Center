@@ -2389,9 +2389,10 @@
     "breakdown_attempts": "{{value}} 次尝试",
     "breakdown_note": "提供商占比按上游尝试次数计算，包含重试。切换模型的请求可出现在多行中，因此各模型请求数之和可能超过个人总数。",
     "breakdown_unavailable": "此采集器未提供按用户划分的模型数据。",
-    "cost_image_short": "包含按上限计算的图像估算",
-    "cost_image_range": "缺少输入文本和图像的细分。汇总采用上限估算；模型表保留按 Standard 费率和已记录缓存读取计算的范围。不含未报告的缓存折扣和中间图像费用。",
-    "cost_image_chart": "图像估算、柱高和占比采用上限；模型表显示范围",
-    "cost_image_details": "GPT Image 费率核验于 {{date}}：每百万 token 文本输入 $5 / 缓存 $1.25、图像输入 $8 / 缓存 $2、图像输出 $30。缺少输入模态细分时，汇总采用上限估算，模型表显示从文本到图像费率的范围。不含未报告的缓存折扣和中间图像费用。未有官方说明的 gpt-image-2.5 标签仍不计价。"
+    "cost_image_short": "包含按上限计算的模态估算",
+    "cost_image_range": "部分图像/音频请求缺少 token 模态细分。汇总采用上限估算，模型表保留 Standard 费率范围。不含未报告的折扣和工具费用。",
+    "cost_image_chart": "模态估算、柱高和占比采用上限；模型表显示范围",
+    "cost_image_details": "GPT Image 费率核验于 {{date}}：每百万 token 文本输入 $5 / 缓存 $1.25、图像输入 $8 / 缓存 $2、图像输出 $30。缺少输入模态细分时，汇总采用上限估算，模型表显示从文本到图像费率的范围。不含未报告的缓存折扣和中间图像费用。未有官方说明的 gpt-image-2.5 标签仍不计价。",
+    "cost_antigravity_details": "Antigravity API 等值费率核验于 {{date}}：Gemini 和 Claude 使用公开 Standard 费率。音频/图像模态不明时显示范围，汇总采用上限。Gemini 3.6–3.8 Flash 优惠费率截至 2026 年 12 月 31 日。未计入缓存存储时间和 grounding 费用。GPT-OSS 无可比的公开费率，仍不计价。"
   }
 }

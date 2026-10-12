@@ -226,6 +226,13 @@ export function DeviceUsagePage() {
               <summary>{t('device_usage.cost_explained')}</summary>
               <p>{t('device_usage.cost_assumptions', { date: data.pricing!.as_of })}</p>
               <p>{t('device_usage.cost_formula')}</p>
+              {data.pricing?.antigravity_as_of && (
+                <p>
+                  {t('device_usage.cost_antigravity_details', {
+                    date: data.pricing.antigravity_as_of
+                  })}
+                </p>
+              )}
               {data.pricing?.image_as_of && (
                 <p>{t('device_usage.cost_image_details', { date: data.pricing.image_as_of })}</p>
               )}
@@ -263,6 +270,18 @@ export function DeviceUsagePage() {
               >
                 GPT Image
               </a>
+              {data.pricing?.antigravity_as_of && (
+                <>
+                  {' · '}
+                  <a
+                    href="https://ai.google.dev/gemini-api/docs/pricing"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Gemini
+                  </a>
+                </>
+              )}
             </details>
           )}
           <div className={styles.status} role="status">

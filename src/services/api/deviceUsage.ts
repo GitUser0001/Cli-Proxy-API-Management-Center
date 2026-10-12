@@ -33,7 +33,13 @@ export interface DeviceUsage {
     partial: boolean;
   })[];
   timezone?: string;
-  pricing?: { as_of: string; image_as_of?: string; currency: string; basis: string };
+  pricing?: {
+    as_of: string;
+    image_as_of?: string;
+    antigravity_as_of?: string;
+    currency: string;
+    basis: string;
+  };
   totals: UsageMetrics;
   clients: (UsageMetrics & { client: string })[];
   models: (UsageMetrics & { provider: string; model: string })[];

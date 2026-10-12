@@ -29,6 +29,71 @@ class UsageTests(unittest.TestCase):
 
 
 class PricingTests(unittest.TestCase):
+    def test_antigravity_text_cache_and_modality_bounds(self):
+        args = ('antigravity', 'gemini-3-flash', 1000, 2000, 200, 0, 'complete')
+        self.assertAlmostEqual(u.estimate_cost(*args), .00641)
+        self.assertAlmostEqual(u.estimate_cost_max(*args), .00682)
+        for model in ('gemini-3.6-flash-high', 'gemini-3.7-flash-high', 'gemini-3.8-flash-high'):
+            args = ('antigravity', model, 1000, 2000, 200, 0, 'complete')
+            self.assertAlmostEqual(u.estimate_cost(*args), .008115)
+            self.assertEqual(u.estimate_cost(*args), u.estimate_cost_max(*args))
+        args = ('antigravity', 'gemini-3.1-flash-lite', 1000, 0, 200, 0, 'complete')
+        self.assertAlmostEqual(u.estimate_cost(*args), .000205)
+        self.assertAlmostEqual(u.estimate_cost_max(*args), .00041)
+        self.assertAlmostEqual(u.estimate_cost('antigravity', 'claude-sonnet-5-5-high',
+                                            1000, 0, 1000, 0, 'complete'), .0001)
+
+    def test_antigravity_pro_threshold_is_200k_and_full_request(self):
+        for model in ('gemini-pro-agent', 'gemini-3.1-pro-low'):
+            self.assertAlmostEqual(u.estimate_cost('antigravity', model,
+                200000, 1000, 100000, 0, 'complete'), .232)
+            self.assertAlmostEqual(u.estimate_cost('antigravity', model,
+                200001, 1000, 100000, 0, 'complete'), .458004)
+        # Flash does not receive either Codex's 272K or Pro's 200K premium.
+        self.assertAlmostEqual(u.estimate_cost('antigravity', 'gemini-3.8-flash-high',
+            300000, 0, 0, 0, 'complete'), .225)
+
+    def test_antigravity_image_bounds_unknowns_and_unsupported_usage(self):
+        args = ('antigravity', 'gemini-3.1-flash-image', 1000, 2000, 0, 0, 'complete')
+        self.assertAlmostEqual(u.estimate_cost(*args), .0065)
+        self.assertAlmostEqual(u.estimate_cost_max(*args), .1205)
+        for provider, model, inp, read, write, quality in [
+            ('codex', 'gemini-3-flash', 100, 0, 0, 'complete'),
+            ('antigravity', 'gemini-3-flash-unknown', 100, 0, 0, 'complete'),
+            ('antigravity', 'gpt-oss-120b-medium', 100, 0, 0, 'complete'),
+            ('antigravity', 'gemini-3-flash', 100, 0, 1, 'complete'),
+            ('antigravity', 'gemini-3-flash', 100, 101, 0, 'complete'),
+            ('antigravity', 'gemini-3-flash', 100, 0, 0, 'unclassified'),
+            ('antigravity', 'gemini-3.1-flash-image', 100, 1, 0, 'complete'),
+        ]:
+            args = (provider, model, inp, 20, read, write, quality)
+            self.assertIsNone(u.estimate_cost(*args))
+            self.assertIsNone(u.estimate_cost_max(*args))
+
+    def test_antigravity_reprices_history_and_all_report_groups(self):
+        import datetime as dt
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'test.db')
+            for ident, model in [('flash', 'gemini-3-flash'), ('pro', 'gemini-pro-agent'),
+                                 ('image', 'gemini-3.1-flash-image')]:
+                e = UsageTests().event()
+                e.update(execution_id=ident, provider='antigravity', model=model)
+                e['token_breakdown']['input'].update(cache_read_tokens=0, cache_write_tokens=0)
+                u.record_batch(c, [e], {})
+            before = list(c.execute('SELECT * FROM events'))
+            for period in ('rolling', 'today', 'calendar'):
+                result = u.report(c, 1, {}, now=dt.datetime(2026,10,4,13,tzinfo=dt.timezone.utc),
+                                  period=period, timezone='UTC', calendar_count=7)
+                self.assertEqual(result['totals']['unpriced_executions'], 0)
+                self.assertGreater(result['totals']['cost_usd'], 0)
+                self.assertGreater(result['totals']['cost_usd_max'], result['totals']['cost_usd'])
+                self.assertEqual(result['pricing']['antigravity_as_of'], '2026-10-12')
+                for key in ['clients','models','daily','timeline','client_models'] + (['series'] if period=='calendar' else []):
+                    for metric in ('cost_usd', 'cost_usd_max', 'unpriced_executions'):
+                        self.assertAlmostEqual(sum(r[metric] for r in result[key]), result['totals'][metric])
+            self.assertEqual(list(c.execute('SELECT * FROM events')), before)
+            c.close()
+
     def test_image_modality_bounds_and_explicit_models(self):
         for model in sorted(u.IMAGE_MODELS):
             args = ('codex', model, 1000, 2000, 200, 0, 'complete')

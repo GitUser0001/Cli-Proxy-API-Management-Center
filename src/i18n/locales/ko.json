@@ -2390,9 +2390,10 @@
     "breakdown_attempts": "Attempts: {{value}}",
     "breakdown_note": "Provider shares count upstream attempts, including retries. A request that switches models can appear in multiple model rows; model request counts may exceed the person’s total.",
     "breakdown_unavailable": "Per-person model data is unavailable from this collector.",
-    "cost_image_short": "Includes image estimates at the upper end",
-    "cost_image_range": "Image input text/image split is unavailable. Totals use the upper estimate; model tables retain the Standard-rate range with recorded cache reads. Unreported cache discounts and partial-image fees are excluded.",
-    "cost_image_chart": "Image estimates, bar heights and shares use the upper end; model tables show ranges",
-    "cost_image_details": "GPT Image rates verified {{date}}: text input $5 / cached $1.25, image input $8 / cached $2, image output $30 per 1M tokens. Without input modality detail, totals use the upper estimate and model tables show the text-to-image price range. Unreported cache discounts and partial-image fees are excluded. The undocumented gpt-image-2.5 label remains unpriced."
+    "cost_image_short": "토큰 유형 추정값의 상한 포함",
+    "cost_image_range": "일부 이미지/오디오 요청은 토큰 유형 정보가 없습니다. 합계는 상한을 사용하고 모델 표는 Standard 요금 범위를 표시합니다. 보고되지 않은 할인과 도구 요금은 제외됩니다.",
+    "cost_image_chart": "추정값, 막대 높이와 비율은 상한을 사용하며 모델 표는 범위를 표시합니다",
+    "cost_image_details": "GPT Image rates verified {{date}}: text input $5 / cached $1.25, image input $8 / cached $2, image output $30 per 1M tokens. Without input modality detail, totals use the upper estimate and model tables show the text-to-image price range. Unreported cache discounts and partial-image fees are excluded. The undocumented gpt-image-2.5 label remains unpriced.",
+    "cost_antigravity_details": "Antigravity API 환산 요금 확인일: {{date}}. Gemini와 Claude는 공개 Standard 요금을 사용합니다. 오디오/이미지 유형이 불명확하면 범위를 표시하고 합계는 상한을 사용합니다. Gemini 3.6–3.8 Flash 할인 요금은 2026년 12월 31일까지입니다. 캐시 저장 시간과 grounding 요금은 제외됩니다. GPT-OSS는 비교 가능한 공개 요금이 없습니다."
   }
 }

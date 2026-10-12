@@ -1,5 +1,42 @@
 # Private device usage extension
 
+## Antigravity API equivalents (ledger.21, 2026-10-12)
+
+Thirteen exact deployed Antigravity model IDs now have API-equivalent prices:
+nine Gemini IDs (including image generation) and four Claude IDs. GPT-OSS120B
+remains unpriced because no comparable first-party tariff exists. This is a
+comparison with public Standard API prices, not Antigravity subscription billing.
+Explicit mappings use the v8.0.23 registry's model identity: gemini-3-flash compares
+with3FlashPreview, gemini-pro-agent and3.1-pro-low with3.1Pro. Unknown IDs/suffixes
+stay excluded; registry changes require revalidation, not fuzzy matching.
+
+Gemini USD/1M input/read/output:3FlashPreview0.50/0.05/3 (audio1/0.10/3),
+3.1FlashLite0.25/0.025/1.50 (audio0.50/0.05/1.50),3.5FlashLite0.30/0.03/2.50,
+3.6/3.7/3.8Flash0.75/0.075/3.75 through2026-12-31. Introductory Flash prices must
+be reverified before2027-01-01 (announced1.50/0.15/7.50).3.1Pro2/0.20/12;
+input>200000 applies4/0.40/18 to the full attempt, including cached input.
+Gemini image input0.50/output text+thinking3/image60. Missing audio input or image
+output modality is represented by lower/upper bounds; totals use the upper,
+model tables retain the range. Canonical output already includes thinking.
+Gemini cache writes and image cache reads have no supported rate and stay excluded;
+cache storage token-hours, grounding/tool/tier/region fees are not recorded.
+
+Antigravity Claude input/read/write5m/output:Opus4.6=5/0.50/6.25/25,
+Sonnet4.6=3/0.30/3.75/15,Opus5.5=4/0.20/5/20,Sonnet5.5=2/0.10/2.50/10.
+Claude cache writes keep the existing5m assumption, no long-context premium.
+Native provider pricing is unchanged by this Antigravity addition.
+
+Sources: [Google prices](https://ai.google.dev/gemini-api/docs/pricing),
+[Cloud prices](https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing),
+[Antigravity model IDs](https://www.antigravity.google/docs/cli/headless/),
+[Antigravity model lineup](https://www.antigravity.google/docs/models/),
+[Claude prices](https://platform.claude.com/docs/en/about-claude/pricing).
+Report metadata adds `antigravity_as_of`; no SQLite/schema change. Legacy
+`image_estimated_executions` counts all modality ranges for compatibility.
+UI explanations use generic modality wording in all six locales. Changes reprice
+all existing events; no history rewrite or extra queue consumer. Restart only
+the existing collector after an immutable release switch; keep current live DB/auth.
+
 Optional Python 3 standard-library sidecar for CLIProxyAPI v8.0.13. The frontend route is `#/device-usage`; its same-origin endpoint `/v8/management/device-usage` must be routed to loopback port 8318, ahead of the ordinary proxy route. This is a deployment-specific extension, not a stock backend endpoint.
 
 The service reads its management key using systemd LoadCredential. Only this key can read metrics. Client inference keys and unauthenticated requests receive 401. Rotate the key and restart this service together when rotating the proxy management key. The UI login page is public, but protected data is not. Never distribute the management key to inference clients.

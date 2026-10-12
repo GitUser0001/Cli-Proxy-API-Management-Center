@@ -40,6 +40,46 @@ IMAGE_PRICING_DATE = '2026-10-07'
 IMAGE_MODELS = {'gpt-image-2', 'gpt-image-2-2026-04-21',
                 'gpt-image-2.5-sunburst', 'gpt-image-2.5-flare'}
 
+# Exact Antigravity IDs from the deployed registry, compared with the public
+# model's Standard API rates. These are API equivalents, not subscription bills.
+ANTIGRAVITY_PRICING_DATE = '2026-10-12'
+ANTIGRAVITY_GEMINI_RATES = {
+    # Lower/upper input, cached input, output; audio modality is not retained.
+    'gemini-3-flash': ((.5, .05, 3), (1, .1, 3)),
+    'gemini-3.1-flash-lite': ((.25, .025, 1.5), (.5, .05, 1.5)),
+    'gemini-3.5-flash-lite': ((.3, .03, 2.5), (.3, .03, 2.5)),
+    # Introductory API rates through 2026-12-31; reverify before 2027-01-01.
+    'gemini-3.6-flash-high': ((.75, .075, 3.75), (.75, .075, 3.75)),
+    'gemini-3.7-flash-high': ((.75, .075, 3.75), (.75, .075, 3.75)),
+    'gemini-3.8-flash-high': ((.75, .075, 3.75), (.75, .075, 3.75)),
+    # Explicit 3.1 Pro comparisons by deployed registry display name.
+    'gemini-3.1-pro-low': ((2, .2, 12), (2, .2, 12)),
+    'gemini-pro-agent': ((2, .2, 12), (2, .2, 12)),
+    # Output text/thinking vs image detail is not retained.
+    'gemini-3.1-flash-image': ((.5, 0, 3), (.5, 0, 60)),
+}
+RATES.update({
+    ('antigravity', 'claude-opus-4-6-thinking'): (5, .5, 6.25, 25),
+    ('antigravity', 'claude-sonnet-4-6'): (3, .3, 3.75, 15),
+    ('antigravity', 'claude-opus-5-5-high'): (4, .2, 5, 20),
+    ('antigravity', 'claude-sonnet-5-5-high'): (2, .1, 2.5, 10),
+})
+
+
+def antigravity_gemini_cost(model, inp, out, read, write, quality, upper=False):
+    bounds = ANTIGRAVITY_GEMINI_RATES.get(model)
+    if (bounds is None or quality != 'complete' or write != 0
+            or min(inp, out, read) < 0 or read > inp):
+        return None
+    # Image API cache pricing is unpublished; exclude unsupported cache reads.
+    if model == 'gemini-3.1-flash-image' and read:
+        return None
+    rate, cached, output = bounds[int(upper)]
+    if model in ('gemini-pro-agent', 'gemini-3.1-pro-low') and inp > 200000:
+        rate, cached, output = rate * 2, cached * 2, output * 1.5
+    # Canonical output already includes thinking. Storage-hour/tool fees absent.
+    return ((inp - read) * rate + read * cached + out * output) / 1000000
+
 
 def image_cost(provider, model, inp, out, read, write, quality, upper=False):
     if (provider != 'codex' or model not in IMAGE_MODELS or quality != 'complete'
@@ -53,6 +93,8 @@ def image_cost(provider, model, inp, out, read, write, quality, upper=False):
 
 
 def estimate_cost(provider, model, inp, out, read, write, quality):
+    if provider == 'antigravity' and model in ANTIGRAVITY_GEMINI_RATES:
+        return antigravity_gemini_cost(model, inp, out, read, write, quality)
     if provider == 'codex' and model in IMAGE_MODELS:
         return image_cost(provider, model, inp, out, read, write, quality)
     rates = RATES.get((provider, model))
@@ -69,6 +111,8 @@ def estimate_cost(provider, model, inp, out, read, write, quality):
 
 
 def estimate_cost_max(provider, model, inp, out, read, write, quality):
+    if provider == 'antigravity' and model in ANTIGRAVITY_GEMINI_RATES:
+        return antigravity_gemini_cost(model, inp, out, read, write, quality, upper=True)
     if provider == 'codex' and model in IMAGE_MODELS:
         return image_cost(provider, model, inp, out, read, write, quality, upper=True)
     return estimate_cost(provider, model, inp, out, read, write, quality)
@@ -280,6 +324,7 @@ def report(c, days, registry, interval='auto', now=None, period='rolling', timez
                 client_models=client_models, collector=collector, timeline=timeline,
                 interval=interval, bucket_seconds=seconds, range_start=since, range_end=until,
                 pricing=dict(as_of=PRICING_DATE, image_as_of=IMAGE_PRICING_DATE,
+                             antigravity_as_of=ANTIGRAVITY_PRICING_DATE,
                              currency='USD', basis='standard-5m-cache-image-range'), **calendar)
 
 
