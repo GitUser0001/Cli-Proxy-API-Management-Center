@@ -43,6 +43,9 @@ IMAGE_MODELS = {'gpt-image-2', 'gpt-image-2-2026-04-21',
 # Exact Antigravity IDs from the deployed registry, compared with the public
 # model's Standard API rates. These are API equivalents, not subscription bills.
 ANTIGRAVITY_PRICING_DATE = '2026-10-12'
+DECISIONS_PRICING_DATE = '2026-10-13'
+# Dedicated /v1/decisions input rates: normal and >272K full-request input.
+DECISIONS_INPUT_RATES = {'gpt-6-luna': (.1, .2)}
 ANTIGRAVITY_GEMINI_RATES = {
     # Lower/upper input, cached input, output; audio modality is not retained.
     'gemini-3-flash': ((.5, .05, 3), (1, .1, 3)),
@@ -93,6 +96,14 @@ def image_cost(provider, model, inp, out, read, write, quality, upper=False):
 
 
 def estimate_cost(provider, model, inp, out, read, write, quality):
+    if provider == 'openai-decisions':
+        # /v1/decisions bills canonical input only, with no separate cache or
+        # output fees. Do not apply the chat model's cache/output rate table.
+        rates = DECISIONS_INPUT_RATES.get(model)
+        if (rates is None or quality != 'complete'
+                or min(inp, out, read, write) < 0 or read + write > inp):
+            return None
+        return inp * rates[int(inp > 272000)] / 1000000
     if provider == 'antigravity' and model in ANTIGRAVITY_GEMINI_RATES:
         return antigravity_gemini_cost(model, inp, out, read, write, quality)
     if provider == 'codex' and model in IMAGE_MODELS:
@@ -325,6 +336,7 @@ def report(c, days, registry, interval='auto', now=None, period='rolling', timez
                 interval=interval, bucket_seconds=seconds, range_start=since, range_end=until,
                 pricing=dict(as_of=PRICING_DATE, image_as_of=IMAGE_PRICING_DATE,
                              antigravity_as_of=ANTIGRAVITY_PRICING_DATE,
+                             decisions_as_of=DECISIONS_PRICING_DATE,
                              currency='USD', basis='standard-5m-cache-image-range'), **calendar)
 
 

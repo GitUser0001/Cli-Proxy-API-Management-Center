@@ -1,5 +1,25 @@
 # Private device usage extension
 
+## Decisions pricing (ledger.22, 2026-10-13)
+
+Only explicit `openai-decisions` / `gpt-6-luna` requests use the dedicated
+Decisions tariff. [Official Decisions pricing](https://developers.openai.com/api/docs/guides/decisions#pricing-and-availability)
+charges $0.10/1M input tokens, with no separate cache-read, cache-write or output
+charges. The inclusive canonical input counter is priced once; cache categories
+do not add another fee or receive the chat API's discounted cache rate.
+Input>272000 uses $0.20/1M for the entire attempt, per the guide's long-context
+rule and [Luna model threshold](https://developers.openai.com/api/docs/models/gpt-6-luna).
+Regional processing premiums are not included in this Standard/global estimate;
+processing geography/tier is not retained in usage events. Output0 is not a free
+request. No tariff per question is added. Unknown models/incomplete/inconsistent
+input counters remain unpriced. Other providers' Luna rates are unchanged.
+
+`pricing.decisions_as_of=2026-10-13` identifies the dedicated verification date.
+All six locales show the endpoint's input-only rule and source link. Existing
+history is repriced without modifying stored events or the SQLite schema.
+Deployment preserves the Decisions backend binary/config/key isolation and
+restarts only the existing usage collector, not the proxy or Caddy.
+
 ## Antigravity API equivalents (ledger.21, 2026-10-12)
 
 Thirteen exact deployed Antigravity model IDs now have API-equivalent prices:

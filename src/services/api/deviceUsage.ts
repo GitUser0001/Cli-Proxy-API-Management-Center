@@ -37,6 +37,7 @@ export interface DeviceUsage {
     as_of: string;
     image_as_of?: string;
     antigravity_as_of?: string;
+    decisions_as_of?: string;
     currency: string;
     basis: string;
   };

@@ -2394,6 +2394,7 @@
     "cost_image_range": "일부 이미지/오디오 요청은 토큰 유형 정보가 없습니다. 합계는 상한을 사용하고 모델 표는 Standard 요금 범위를 표시합니다. 보고되지 않은 할인과 도구 요금은 제외됩니다.",
     "cost_image_chart": "추정값, 막대 높이와 비율은 상한을 사용하며 모델 표는 범위를 표시합니다",
     "cost_image_details": "GPT Image rates verified {{date}}: text input $5 / cached $1.25, image input $8 / cached $2, image output $30 per 1M tokens. Without input modality detail, totals use the upper estimate and model tables show the text-to-image price range. Unreported cache discounts and partial-image fees are excluded. The undocumented gpt-image-2.5 label remains unpriced.",
-    "cost_antigravity_details": "Antigravity API 환산 요금 확인일: {{date}}. Gemini와 Claude는 공개 Standard 요금을 사용합니다. 오디오/이미지 유형이 불명확하면 범위를 표시하고 합계는 상한을 사용합니다. Gemini 3.6–3.8 Flash 할인 요금은 2026년 12월 31일까지입니다. 캐시 저장 시간과 grounding 요금은 제외됩니다. GPT-OSS는 비교 가능한 공개 요금이 없습니다."
+    "cost_antigravity_details": "Antigravity API 환산 요금 확인일: {{date}}. Gemini와 Claude는 공개 Standard 요금을 사용합니다. 오디오/이미지 유형이 불명확하면 범위를 표시하고 합계는 상한을 사용합니다. Gemini 3.6–3.8 Flash 할인 요금은 2026년 12월 31일까지입니다. 캐시 저장 시간과 grounding 요금은 제외됩니다. GPT-OSS는 비교 가능한 공개 요금이 없습니다.",
+    "cost_decisions_details": "Decisions 요금 확인일 {{date}}: gpt-6-luna 입력 100만 토큰당 $0.10, 입력이 272K를 넘으면 전체 요청에 100만 토큰당 $0.20을 적용합니다. 캐시 읽기/쓰기와 출력에 별도 요금이 없습니다. 지역 처리 할증은 제외됩니다."
   }
 }

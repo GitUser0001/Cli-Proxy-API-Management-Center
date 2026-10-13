@@ -226,6 +226,11 @@ export function DeviceUsagePage() {
               <summary>{t('device_usage.cost_explained')}</summary>
               <p>{t('device_usage.cost_assumptions', { date: data.pricing!.as_of })}</p>
               <p>{t('device_usage.cost_formula')}</p>
+              {data.pricing?.decisions_as_of && (
+                <p>
+                  {t('device_usage.cost_decisions_details', { date: data.pricing.decisions_as_of })}
+                </p>
+              )}
               {data.pricing?.antigravity_as_of && (
                 <p>
                   {t('device_usage.cost_antigravity_details', {
@@ -270,6 +275,18 @@ export function DeviceUsagePage() {
               >
                 GPT Image
               </a>
+              {data.pricing?.decisions_as_of && (
+                <>
+                  {' · '}
+                  <a
+                    href="https://developers.openai.com/api/docs/guides/decisions#pricing-and-availability"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Decisions
+                  </a>
+                </>
+              )}
               {data.pricing?.antigravity_as_of && (
                 <>
                   {' · '}

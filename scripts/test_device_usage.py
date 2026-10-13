@@ -29,6 +29,57 @@ class UsageTests(unittest.TestCase):
 
 
 class PricingTests(unittest.TestCase):
+    def test_decisions_input_only_and_no_separate_cache_or_output_fees(self):
+        args = ('openai-decisions', 'gpt-6-luna', 1000, 200, 700, 100, 'complete')
+        self.assertAlmostEqual(u.estimate_cost(*args), .0001)
+        self.assertEqual(u.estimate_cost(*args), u.estimate_cost_max(*args))
+        self.assertNotEqual(u.estimate_cost(*args), u.estimate_cost('codex', *args[1:]))
+        self.assertAlmostEqual(u.estimate_cost('openai-decisions', 'gpt-6-luna',
+            390, 0, 0, 0, 'complete'), .000039)
+
+    def test_decisions_full_input_threshold_and_accounting_guards(self):
+        for inp, expected in ((272000, .0272), (272001, .0544002)):
+            self.assertAlmostEqual(u.estimate_cost('openai-decisions', 'gpt-6-luna',
+                inp, 999, inp, 0, 'complete'), expected)
+        for model, inp, out, read, write, quality in [
+            ('gpt-6.1-sol',100,0,0,0,'complete'),
+            ('gpt-6-luna-unknown',100,0,0,0,'complete'),
+            ('gpt-6-luna',100,0,0,0,'unclassified'),
+            ('gpt-6-luna',100,0,80,30,'complete'),
+            ('gpt-6-luna',100,-1,0,0,'complete'),
+            ('gpt-6-luna',100,0,-1,0,'complete'),
+        ]:
+            args = ('openai-decisions',model,inp,out,read,write,quality)
+            self.assertIsNone(u.estimate_cost(*args))
+            self.assertIsNone(u.estimate_cost_max(*args))
+
+    def test_decisions_historical_retry_cost_reconciles_without_rewriting_events(self):
+        import datetime as dt
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'test.db')
+            for ident, model, failed in [('first','gpt-6-luna',False),
+                                        ('retry','gpt-6-luna',True),
+                                        ('unknown','gpt-6-luna-new',False)]:
+                e = UsageTests().event()
+                e.update(execution_id=ident,provider='openai-decisions',model=model,
+                         trace_id='same-request',failed=failed)
+                u.record_batch(c,[e],{})
+            before = list(c.execute('SELECT * FROM events'))
+            for period in ('rolling','today','calendar'):
+                r = u.report(c,1,{},now=dt.datetime(2026,10,4,13,tzinfo=dt.timezone.utc),
+                             period=period,timezone='UTC',calendar_count=7)
+                self.assertEqual(r['pricing']['decisions_as_of'],'2026-10-13')
+                self.assertAlmostEqual(r['totals']['cost_usd'],.00002)
+                self.assertEqual(r['totals']['cost_usd_max'],r['totals']['cost_usd'])
+                self.assertEqual(r['totals']['unpriced_executions'],1)
+                self.assertEqual(r['totals']['requests'],1)
+                self.assertEqual(r['totals']['executions'],3)
+                for group in ['clients','models','daily','timeline','client_models'] + (['series'] if period=='calendar' else []):
+                    for metric in ('cost_usd','cost_usd_max','unpriced_executions'):
+                        self.assertAlmostEqual(sum(row[metric] for row in r[group]),r['totals'][metric])
+            self.assertEqual(list(c.execute('SELECT * FROM events')),before)
+            c.close()
+
     def test_antigravity_text_cache_and_modality_bounds(self):
         args = ('antigravity', 'gemini-3-flash', 1000, 2000, 200, 0, 'complete')
         self.assertAlmostEqual(u.estimate_cost(*args), .00641)
