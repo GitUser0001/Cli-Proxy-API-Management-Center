@@ -93,4 +93,14 @@ describe('quota ledger', () => {
     expect(masked).not.toContain('person');
     expect(masked).not.toContain('example');
   });
+  test('keeps provider labels visible while hiding embedded email identities', () => {
+    for (const provider of ['claude', 'antigravity', 'codex']) {
+      const name = `${provider}-private-uuid+alias@sub.example.test.json`;
+      expect(maskQuotaEmails(name)).toBe(`${provider}-•••@•••.json`);
+      expect(maskQuotaEmails(`${name} · person@example.test`)).toBe(
+        `${provider}-•••@•••.json · •••@•••`
+      );
+    }
+    expect(maskQuotaEmails('unknown-private@example.test.json')).toBe('•••@•••.json');
+  });
 });

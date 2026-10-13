@@ -17,11 +17,11 @@ export function remainingPercent(used: number | null | undefined): number | null
 }
 
 // Mask the entire mailbox, including UUID-style local parts and subdomains.
-// Filenames without email addresses remain useful identifiers.
+// Known provider prefixes and filenames without emails remain useful identifiers.
 export function maskQuotaEmails(name: string): string {
   return name.replace(/[^\s@·]+@[^\s@·]+/g, (mailbox) => {
     const suffix = mailbox.endsWith('.json') ? '.json' : '';
-    const prefix = mailbox.startsWith('claude-') ? 'claude-' : '';
+    const prefix = mailbox.match(/^(claude|antigravity|codex)-/)?.[0] ?? '';
     return `${prefix}•••@•••${suffix}`;
   });
 }
