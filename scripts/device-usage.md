@@ -1,5 +1,20 @@
 # Private device usage extension
 
+## Claude Opus 5 pricing (2026-10-15)
+
+Exact `claude` / `claude-opus-5` now uses Standard USD/1M rates:
+input5, cache read0.50, assumed5m cache write6.25, output25.
+[Official pricing](https://platform.claude.com/docs/en/about-claude/pricing)
+and [model identity](https://platform.claude.com/docs/en/models/opus-5/overview)
+verified2026-10-15. No long-context premium; canonical output includes reasoning.
+1h cache writes cost10 but TTL is absent from events, so the existing5m
+assumption remains. Fast/region/tool fees/discounts are outside the Standard
+API equivalent; this does not estimate subscription charges. Unknown IDs and
+incomplete accounting remain excluded. Adding the exact rate reprices retained
+history, including recorded retries, without rewriting events. Collector-only
+versioned release; preserve UIledger.23, custom Decisions backend/config/private
+key and all other provider rates. Restart only the existing collector.
+
 ## Decisions pricing (ledger.22, 2026-10-13)
 
 Only explicit `openai-decisions` / `gpt-6-luna` requests use the dedicated

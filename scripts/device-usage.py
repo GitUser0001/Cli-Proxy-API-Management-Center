@@ -28,6 +28,8 @@ METRICS = ['input', 'output', 'cache_read', 'cache_write', 'reasoning', 'total']
 # Verified 2026-10-04 against official model pages; see device-usage.md.
 PRICING_DATE = '2026-10-04'
 RATES = {
+    # Opus 5 verified 2026-10-15; Standard API equivalent, assumed 5m writes.
+    ('claude', 'claude-opus-5'): (5, .5, 6.25, 25),
     ('claude', 'claude-opus-5-5'): (4, .2, 5, 20),
     ('claude', 'claude-sonnet-5-5'): (2, .2, 2.5, 10),
     ('claude', 'claude-haiku-4-5-20251001'): (1, .1, 1.25, 5),

@@ -29,6 +29,45 @@ class UsageTests(unittest.TestCase):
 
 
 class PricingTests(unittest.TestCase):
+    def test_opus5_cache_split_and_no_long_context_premium(self):
+        for inp in (1000, 300000):
+            args = ('claude', 'claude-opus-5', inp, 200, 700, 100, 'complete')
+            expected = ((inp - 800) * 5 + 700 * .5 + 100 * 6.25 + 200 * 25) / 1000000
+            self.assertAlmostEqual(u.estimate_cost(*args), expected)
+            self.assertEqual(u.estimate_cost(*args), u.estimate_cost_max(*args))
+        for provider, model, inp, read, write, quality in [
+            ('codex', 'claude-opus-5', 100, 0, 0, 'complete'),
+            ('claude', 'claude-opus-5-unknown', 100, 0, 0, 'complete'),
+            ('claude', 'claude-opus-5', 100, 0, 0, 'unclassified'),
+            ('claude', 'claude-opus-5', 100, 80, 30, 'complete'),
+        ]:
+            self.assertIsNone(u.estimate_cost(provider, model, inp, 20, read, write, quality))
+
+    def test_opus5_reprices_recorded_retries_in_all_report_groups(self):
+        import datetime as dt
+        with tempfile.TemporaryDirectory() as root:
+            c = u.connect(Path(root) / 'test.db')
+            for ident, model, failed in [('first', 'claude-opus-5', False),
+                                        ('retry', 'claude-opus-5', True),
+                                        ('unknown', 'claude-opus-5-unknown', False)]:
+                e = UsageTests().event()
+                e.update(execution_id=ident, model=model, trace_id='same-request', failed=failed)
+                u.record_batch(c, [e], {})
+            before = list(c.execute('SELECT * FROM events'))
+            for period in ('rolling', 'today', 'calendar'):
+                r = u.report(c, 1, {}, now=dt.datetime(2026, 10, 4, 13, tzinfo=dt.timezone.utc),
+                             period=period, timezone='UTC', calendar_count=7)
+                self.assertAlmostEqual(r['totals']['cost_usd'], .00142)
+                self.assertEqual(r['totals']['cost_usd_max'], r['totals']['cost_usd'])
+                self.assertEqual(r['totals']['unpriced_executions'], 1)
+                self.assertEqual(r['totals']['requests'], 1)
+                self.assertEqual(r['totals']['executions'], 3)
+                for group in ['clients', 'models', 'daily', 'timeline', 'client_models'] + (['series'] if period == 'calendar' else []):
+                    for metric in ('cost_usd', 'cost_usd_max', 'unpriced_executions'):
+                        self.assertAlmostEqual(sum(row[metric] for row in r[group]), r['totals'][metric])
+            self.assertEqual(list(c.execute('SELECT * FROM events')), before)
+            c.close()
+
     def test_decisions_input_only_and_no_separate_cache_or_output_fees(self):
         args = ('openai-decisions', 'gpt-6-luna', 1000, 200, 700, 100, 'complete')
         self.assertAlmostEqual(u.estimate_cost(*args), .0001)
